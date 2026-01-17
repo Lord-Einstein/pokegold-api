@@ -1,16 +1,23 @@
 import './styles/style.css'
 import './components/poke-list-card'
 
-import { pokeListApiFetcher } from './services/details-api'
+import { pokeListApiFetcher, pokeLiteApiFetcher } from './services/details-api'
 import { pokeApiFetcher } from './services/poke-api';
 
 const displayLimit = 6;
 const NOT_FOUND_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
+type LitePokemon = {
+  name: string;
+  url: string;
+}
+
 let currentOffset = 0;
 let totalPokemons = 0;
 let onSearchMode = false;
 
+//je fais un pseudo cache pour optimiser la recherche instantanée et je le vide par sécu
+let pokeCache: LitePokemon[] = [];
 
 const appDiv = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -82,6 +89,10 @@ function updatePaginationUI() {
   btnNext.disabled = (currentPage >= totalPages);
 }
 
+function getIdFromUrl(url: string): string {
+  const parts = url.split('/');
+  return parts[parts.length - 2];
+}
 
 /**
  * Fonction principale pour charger et afficher une page
@@ -104,9 +115,14 @@ async function loadPage(offset: number) {
   totalPokemons = data.count;
 
   //les vraies cartes
+  // const cardsHtml = data.results.map(pokemon => {
+  //   const urlParts = pokemon.url.split('/');
+  //   const id = urlParts[urlParts.length - 2];
+  //   return `<pokemon-card pokemon-id="${id}"></pokemon-card>`;
+  // }).join('');
+
   const cardsHtml = data.results.map(pokemon => {
-    const urlParts = pokemon.url.split('/');
-    const id = urlParts[urlParts.length - 2];
+    const id = getIdFromUrl(pokemon.url);
     return `<pokemon-card pokemon-id="${id}"></pokemon-card>`;
   }).join('');
 
@@ -115,37 +131,43 @@ async function loadPage(offset: number) {
   updatePaginationUI();
 }
 
-async function searchManager() {
-  
+async function instantSearchManager() {
   const searchEntry = searchInput.value.trim().toLowerCase();
 
-  if(searchEntry === ""){
-    loadPage(currentOffset);
+  if(searchEntry === "") {
+    if(onSearchMode) loadPage(currentOffset);
     return;
   }
 
   onSearchMode = true;
-    updatePaginationUI();
-    container.innerHTML = '<div class="skeleton-card"></div>';
+  updatePaginationUI();
 
-    const pokemon = await pokeApiFetcher(searchEntry);
+  //Filtre automatique sur mon cache dans filter
+  const filter = pokeCache.filter(p => {
+    const id = getIdFromUrl(p.url);
+    return p.name.includes(searchEntry) || id === searchEntry;
+  });
 
-    if (!pokemon) {
-      container.innerHTML = `
+  //Si il le trouve pas..
+  if (filter.length === 0) {
+    container.innerHTML = `
+      <div class="not-found-container">
+        <img src="${NOT_FOUND_IMAGE}" alt="Introuvable" class="bounce-img">
+        <div class="shadow-pulse"></div>
+        <h3>Introuvable...</h3>
+        <p>Aucun Pokémon ne correspond à "<strong>${searchEntry}</strong>"</p>
+      </div>
+    `;
+    return;
+  }
 
-        <div class="not-found-container">
-          <img src="${NOT_FOUND_IMAGE}" alt="Introuvable" class="bounce-img">
-          <div class="shadow-pulse"></div> <h3 style="font-size: 1.5rem; margin-bottom: 10px;">Oups !</h3>
-          <p>Aucun Pokémon ne correspond à "<strong>${searchEntry}</strong>"</p>
-          <small style="color: var(--text-muted)">Essayez avec l'ID (ex: 25) ou le nom anglais (ex: Charizard).</small>
-        </div>
+  const resultsToShow = filter.slice(0, 20); //réduire la table du tableau des fiches
+    
+  const cardsHtml = resultsToShow.map(p => {
+    return `<pokemon-card pokemon-id="${getIdFromUrl(p.url)}"></pokemon-card>`;
+  }).join('');
 
-      `;
-      return;
-    }
-
-  container.innerHTML = `<pokemon-card pokemon-id="${pokemon.id}"></pokemon-card>`;
-
+  container.innerHTML = cardsHtml;
 
 }
 
@@ -165,6 +187,17 @@ function handleInputNavigation() {
 }
 
 
+(async function initApp() {
+  //charger ma page
+  loadPage(0);
+  
+  // pendant le chargement de base je télécharge la liste complète pour la recherche..mo cache
+  const fullList = await pokeLiteApiFetcher();
+  pokeCache = fullList;
+  console.log("Base de données Pokémon chargée : ", pokeCache.length, "entrées."); //Ligne de debug
+})();
+
+
 btnPrev.addEventListener('click', () => {
   if (currentOffset > 0) {
     currentOffset -= displayLimit;
@@ -182,15 +215,7 @@ btnNext.addEventListener('click', () => {
 
 pageInput.addEventListener('change', handleInputNavigation);
 
-btnSearch.addEventListener('click', searchManager);
-
-searchInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') searchManager();
-});
-
-searchInput.addEventListener('input', (e) => {
-  if ((e.target as HTMLInputElement).value === "") loadPage(currentOffset);
-});
+searchInput.addEventListener('input', instantSearchManager);
 
 
 console.log("Programme lancé");

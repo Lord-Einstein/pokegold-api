@@ -25,3 +25,22 @@ export async function pokeListApiFetcher(offset: number = 0, limit: number = 20)
     }
 
 }
+
+export async function pokeLiteApiFetcher() {
+    const url = `${API_URL}/${API_TYPE}?offset=0&limit=10000}`;
+
+    try{
+
+        const response = await fetch(url);
+
+        if(!response.ok) return [];
+            
+        const data = await response.json();
+        return data.results;
+
+
+    } catch(error) {
+        console.error("Erreur de chargement:", error);
+        return [];
+    }
+}
