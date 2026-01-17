@@ -5,10 +5,12 @@ import { pokeListApiFetcher } from './services/details-api'
 import { pokeApiFetcher } from './services/poke-api';
 
 const displayLimit = 6;
+const NOT_FOUND_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
 let currentOffset = 0;
 let totalPokemons = 0;
 let onSearchMode = false;
+
 
 const appDiv = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -130,10 +132,14 @@ async function searchManager() {
 
     if (!pokemon) {
       container.innerHTML = `
-        <div style="text-align: center; width: 100%;">
-          <p>Aucun Pokémon trouvé pour "${searchEntry}"...</p>
-          <small style="color: var(--text-muted)">Essayez l'ID exact ou le nom en anglais.</small>
+
+        <div class="not-found-container">
+          <img src="${NOT_FOUND_IMAGE}" alt="Introuvable" class="bounce-img">
+          <div class="shadow-pulse"></div> <h3 style="font-size: 1.5rem; margin-bottom: 10px;">Oups !</h3>
+          <p>Aucun Pokémon ne correspond à "<strong>${searchEntry}</strong>"</p>
+          <small style="color: var(--text-muted)">Essayez avec l'ID (ex: 25) ou le nom anglais (ex: Charizard).</small>
         </div>
+
       `;
       return;
     }
