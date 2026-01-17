@@ -81,82 +81,80 @@ const COMPONENT_STYLE = `
 `;
 
 export class PokemonGridCard extends HTMLElement {
-  
   constructor() {
-      super();
-      this.attachShadow({ mode: 'open' });
+    super();
+    this.attachShadow({ mode: "open" });
   }
 
   async connectedCallback() {
-      const pokemonId = this.getAttribute('pokemon-id');
+    const pokemonId = this.getAttribute("pokemon-id");
 
-      if(!pokemonId) {
-          this.renderError("Identifiant de recherche manquant");
-          return;
+    if (!pokemonId) {
+      this.renderError("Identifiant de recherche manquant");
+      return;
+    }
+
+    this.renderLoading();
+
+    try {
+      //Recup de mes datas...
+      const data = await pokeApiFetcher(pokemonId);
+
+      if (data) {
+        this.renderGridPokemon(data);
+      } else {
+        this.renderError("Données Introuvables..");
       }
-
-      this.renderLoading();
-
-      try {
-          //Recup de mes datas...
-          const data = await pokeApiFetcher(pokemonId);
-
-          if (data) {
-              this.renderGridPokemon(data);
-          } else {
-              this.renderError("Données Introuvables..");
-          }
-
-      } catch (error) {
-          this.renderError("Erreur réseau :");
-          console.error(error); //ma ligne de debug en cas d'erreur
-      }
+    } catch (error) {
+      this.renderError("Erreur réseau :");
+      console.error(error); //ma ligne de debug en cas d'erreur
+    }
   }
 
   renderLoading() {
-      if (this.shadowRoot) {
-          this.shadowRoot.innerHTML = `
-              ${COMPONENT_STYLE}
-              <div class="card">
-              <div class="loading">Chargement...</div>
-              </div>
-          `;
-      }
+    if (this.shadowRoot) {
+      this.shadowRoot.innerHTML = `
+        ${COMPONENT_STYLE}
+        <div class="card">
+          <div class="loading">Chargement...</div>
+        </div>
+      `;
+    }
   }
 
-  renderError(msg: string):void {
-      if (this.shadowRoot) {
-          this.shadowRoot.innerHTML = `
+  renderError(msg: string): void {
+    if (this.shadowRoot) {
+      this.shadowRoot.innerHTML = `
               ${COMPONENT_STYLE}
               <div class="card" style="border: 2px solid red;">
               <p>Erreur : ${msg}</p>
               </div>
           `;
-      }
+    }
   }
 
   renderGridPokemon(pokemon: Pokemon) {
-
-    const DEFAULT_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
+    const DEFAULT_IMAGE =
+      "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
     //badges de type
     const typesHtml = pokemon.types
-    .map(element => `<span class="type-badge">${element.type.name}</span>`)
-    .join('');
+      .map((element) => `<span class="type-badge">${element.type.name}</span>`)
+      .join("");
 
     const sprites = pokemon.sprites;
-    // Mettre l'image en Hd et si pas dispo je mets l'image en 3D sinon en pixels sinon une pokeball
-    const image = 
-    sprites.other?.home?.front_default ||
-    sprites.other?.["official-artwork"]?.front_default ||
-    sprites.front_default ||
-    DEFAULT_IMAGE;
+    // Mettre l'image en 3d et si pas dispo je mets l'image en HD sinon en pixels sinon une pokeball (Oui j'suis en mode top secure là ^^)
+    const image =
+      sprites.other?.home?.front_default ||
+      sprites.other?.["official-artwork"]?.front_default ||
+      sprites.front_default ||
+      DEFAULT_IMAGE;
 
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = `
         ${COMPONENT_STYLE}
         <div class="card">
-            <div class="card-id">N° ${pokemon.id.toString().padStart(4, '0')}</div>
+            <div class="card-id">N° ${pokemon.id.toString().padStart(4, "0")}</div>
             <img class="card-img" src="${image}" alt="${pokemon.name}" />
             <h2 class="card-name">${pokemon.name}</h2>
             <div class="types">
@@ -168,7 +166,6 @@ export class PokemonGridCard extends HTMLElement {
   }
 }
 
-
-if (!customElements.get('pokemon-card')) {
-  customElements.define('pokemon-card', PokemonGridCard);
+if (!customElements.get("pokemon-card")) {
+  customElements.define("pokemon-card", PokemonGridCard);
 }
