@@ -44,3 +44,44 @@ export async function pokeLiteApiFetcher() {
         return [];
     }
 }
+
+export async function fetchFiltersList(category: 'type' | 'generation' | 'ability') {
+    try{
+        const apiResponse = await fetch(`${API_URL}/${category}?limit=1000`);
+        if(!apiResponse.ok){
+            throw new Error(`Message d'erreur : ${apiResponse.status}`);
+        }
+        const data = await apiResponse.json();
+
+        const sortedResults = data.results.sort((a:any, b:any) => {
+            return a.name.localeCompare(b.name);
+        });
+
+        return sortedResults;
+    } catch(error) {
+        console.error(error);
+        return [];
+    }
+}
+
+export async function fetchPokemonByFilter(url: string) {
+    try {
+        const apiResponse = await fetch(url);
+
+        if(!apiResponse.ok){
+            throw new Error(`Message d'erreur : ${apiResponse.status}`);
+        }
+
+        const data = await apiResponse.json();
+        
+        if (data.pokemon) { //vu que le type et les ability se présentent avec pokemon mais pas generations
+            return data.pokemon.map((element: any) => element.pokemon);
+        } else if (data.pokemon_species) {
+            return data.pokemon_species;
+        }
+        return [];
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+}
