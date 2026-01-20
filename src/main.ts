@@ -3,14 +3,15 @@ import './components/poke-list-card'
 
 import { pokeLiteApiFetcher, fetchFiltersList, fetchPokemonByFilter } from './services/details-api'
 
-const displayLimit = 12;
+const displayLimit = 5;
 const NOT_FOUND_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
 type LitePokemon = { name: string; url: string; };
 type SortMode = 'id' | 'name';
 type OrderMode = 'asc' | 'desc';
 
-let masterList: LitePokemon[] = []; 
+let fullRepository: LitePokemon[] = []; 
+let filteredRepository: LitePokemon[] = [];
 let currentDisplayList: LitePokemon[] = []; 
 
 let currentOffset = 0;
@@ -22,34 +23,35 @@ const appDiv = document.querySelector<HTMLDivElement>('#app')!;
 
 appDiv.innerHTML = `
   <div class="app-container">
-    <h1 class="app-title">Pokédex Pro</h1>
+    <h1 class="app-title"><i class="fa-solid fa-crown" style="font-size: 0.8em; color: var(--text-gold);"></i> Pokédex Pro</h1>
 
     <div class="search-container">
-        <input type="text" id="search-input" class="search-input" placeholder="✨ Chercher un Pokémon...">
+        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 20px; top: 18px; color: var(--text-gold);"></i>
+        <input type="text" id="search-input" class="search-input" style="padding-left: 50px;" placeholder="Rechercher par Nom ou ID...">
     </div>
 
     <div class="filter-wrapper">
         <button id="toggle-filters" class="filter-toggle-btn">
-            Filtres & Tris
+            <i class="fa-solid fa-sliders"></i> Filtres & Tris
         </button>
         <div id="filter-panel" class="filter-panel">
             <div class="filter-grid">
                 
                 <select id="select-type" class="custom-select">
-                    <option value="all"> Tous les Types</option>
+                    <option value="all">Tous les Types</option>
                 </select>
                 <select id="select-gen" class="custom-select">
-                    <option value="all"> Toutes Générations</option>
+                    <option value="all">Toutes Générations</option>
                 </select>
                 <select id="select-ability" class="custom-select">
-                    <option value="all"> Toutes Capacités</option>
+                    <option value="all">Toutes Capacités</option>
                 </select>
 
                 <button id="sort-id" class="sort-btn active">
-                    <span></span> ID <span id="icon-id">▲</span>
+                    <i class="fa-solid fa-hashtag"></i> ID <span id="icon-id">▲</span>
                 </button>
                 <button id="sort-name" class="sort-btn">
-                    <span></span> Nom <span id="icon-name"></span>
+                    <i class="fa-solid fa-font"></i> Nom <span id="icon-name"></span>
                 </button>
 
             </div>
@@ -57,12 +59,12 @@ appDiv.innerHTML = `
     </div>
     
     <div class="pagination-container" id="pagination-controls">
-      <button id="btn-prev" disabled>◀</button>
+      <button id="btn-prev" disabled><i class="fa-solid fa-chevron-left"></i></button>
       <div class="page-selector">
           Page <input type="number" id="page-input" class="page-input" value="1" min="1"> 
-          <span style="color: var(--text-muted)">sur</span> <span id="total-pages">...</span>
+          <span style="color: var(--text-muted)"> / </span> <span id="total-pages">...</span>
       </div>
-      <button id="btn-next">▶</button>
+      <button id="btn-next"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
     <div id="pokemon-container" class="cards-grid"></div>
@@ -86,9 +88,8 @@ const btnSortId = document.getElementById('sort-id') as HTMLButtonElement;
 const btnSortName = document.getElementById('sort-name') as HTMLButtonElement;
 
 
-
 function getIdFromUrl(url: string): number {
-    const parts = url.split('/').filter(Boolean); //avec le .filter(Boolean) je peut direct enlever les espaces et les strings nulls donc dans tous les cas je retrouverai l'id dans las dernière case
+    const parts = url.split('/').filter(Boolean);
     return parseInt(parts[parts.length - 1]);
 }
 
@@ -98,24 +99,26 @@ function renderSkeletons() {
 
 
 /**
- * Je prend la `masterList`, j'applique la recherche texte et applique le tri puis ensuite
- * met à jour `currentDisplayList`.
+ * Je récupère `filteredRepository`
+ * puis j'applique la recherche texte locale.
+ * j'aplique le tri
+ * et je mets à jour `currentDisplayList` et l'UI.
  */
 function mainProcess() {
     const term = searchInput.value.trim().toLowerCase();
 
-    //filtrer par texte
-    let temp = masterList;
+    // filtrage d'nom ou id
+    let temp = filteredRepository;
     if (term !== "") {
-        temp = masterList.filter(p => {
+        temp = filteredRepository.filter(p => {
             const id = getIdFromUrl(p.url).toString();
-            return p.name.includes(term) || id === term;
+            return p.name.includes(term) || id.includes(term);
         });
     }
 
-    //tri en sort
     temp.sort((a, b) => {
-        let valA, valB;
+        let valA: number | string, valB: number | string;
+        
         if (activeSort === 'id') {
             valA = getIdFromUrl(a.url);
             valB = getIdFromUrl(b.url);
@@ -130,26 +133,27 @@ function mainProcess() {
 
     currentDisplayList = temp;
     
-    currentOffset = 0;
+    //reset de la pagination en cas de out limit
+    if(currentOffset >= currentDisplayList.length) {
+        currentOffset = 0;
+    }
+    
     updatePaginationUI();
     renderPage();
 }
 
-/**
- * Affiche la page courante basée sur currentDisplayList et currentOffset
- */
 function renderPage() {
     if (currentDisplayList.length === 0) {
         container.innerHTML = `
             <div class="not-found-container">
                 <img src="${NOT_FOUND_IMAGE}" alt="Introuvable" class="bounce-img">
                 <div class="shadow-pulse"></div>
-                <p>Aucun résultat...</p>
+                <h3 style="color:var(--text-gold); margin-top:20px;">Aucun Pokémon trouvé</h3>
+                <p>Essayez de modifier vos filtres.</p>
             </div>`;
         return;
     }
 
-    //Découper l'affichage en fonction de la limite
     const pageItems = currentDisplayList.slice(currentOffset, currentOffset + displayLimit);
     
     const html = pageItems.map(p => 
@@ -179,51 +183,89 @@ function updatePaginationUI() {
 }
 
 
-//filtres
 async function loadFilterOptions() {
-    const types = await fetchFiltersList('type');
+    // chargement des différentes listes de filtres en même temps
+    const [types, gens, abilities] = await Promise.all([
+        fetchFiltersList('type'),
+        fetchFiltersList('generation'),
+        fetchFiltersList('ability')
+    ]);
+
     types.forEach((t: any) => {
         selectType.innerHTML += `<option value="${t.url}">${t.name.toUpperCase()}</option>`;
     });
 
-    const gens = await fetchFiltersList('generation');
     gens.forEach((g: any) => {
-        selectGen.innerHTML += `<option value="${g.url}">Génération ${g.name.split('-')[1].toUpperCase()}</option>`;
+        selectGen.innerHTML += `<option value="${g.url}">GÉNÉRATION ${g.name.split('-')[1].toUpperCase()}</option>`;
     });
 
-    const abilities = await fetchFiltersList('ability');
     abilities.forEach((a: any) => {
-        selectAbility.innerHTML += `<option value="${a.url}">Capacité: ${a.name}</option>`;
+        selectAbility.innerHTML += `<option value="${a.url}">${a.name}</option>`;
     });
 }
 
-// Quand on change un Select
-async function handleFilterSelect(type: 'type' | 'gen' | 'ability', url: string) {
+/**
+ * logique de cobinaison de mes filtres
+ * Si je change un filtre je check les autres
+ * et si un select est déja ctionné je prends la liste qu'il retourne pour agir dessus
+ */
+async function applyAllFilters() {
     renderSkeletons();
-    
-    // Réinitialiser les autres selects pour éviter les confusions (API limitation)
-    if(type !== 'type') selectType.value = 'all';
-    if(type !== 'gen') selectGen.value = 'all';
-    if(type !== 'ability') selectAbility.value = 'all';
 
-    if (url === 'all') {
-        masterList = await pokeLiteApiFetcher();
-    } else {
-        masterList = await fetchPokemonByFilter(url);
+    const typeUrl = selectType.value;
+    const genUrl = selectGen.value;
+    const abilityUrl = selectAbility.value;
+
+    let listsToIntersect: LitePokemon[][] = [];
+
+    try {
+        if (typeUrl !== 'all') {
+            const response = await fetchPokemonByFilter(typeUrl);
+            listsToIntersect.push(response);
+        }
+
+        if (genUrl !== 'all') {
+            const response = await fetchPokemonByFilter(genUrl);
+            listsToIntersect.push(response);
+        }
+
+        if (abilityUrl !== 'all') {
+            const response = await fetchPokemonByFilter(abilityUrl);
+            listsToIntersect.push(response);
+        }
+
+        if (listsToIntersect.length === 0) {
+            //s'il y'a vraiment rien en je charge toute la liste d base
+            filteredRepository = [...fullRepository];
+        } else {
+            
+            let result = listsToIntersect[0];
+
+            for (let i = 1; i < listsToIntersect.length; i++) {
+                const currentSet = new Set(listsToIntersect[i].map(p => p.name));
+                result = result.filter(p => currentSet.has(p.name));
+            }
+            
+            filteredRepository = result;
+        }
+
+        currentOffset = 0;
+        mainProcess();
+
+    } catch (e) {
+        console.error("Erreur de filtrage.", e);
+        container.innerHTML = `<p style="color:red">Erreur de récupération des filtres.</p>`;
     }
-
-    mainProcess();
 }
-
 
 
 btnToggleFilters.addEventListener('click', () => {
     filterPanel.classList.toggle('open');
 });
 
-selectType.addEventListener('change', (e) => handleFilterSelect('type', (e.target as HTMLSelectElement).value));
-selectGen.addEventListener('change', (e) => handleFilterSelect('gen', (e.target as HTMLSelectElement).value));
-selectAbility.addEventListener('change', (e) => handleFilterSelect('ability', (e.target as HTMLSelectElement).value));
+selectType.addEventListener('change', applyAllFilters);
+selectGen.addEventListener('change', applyAllFilters);
+selectAbility.addEventListener('change', applyAllFilters);
 
 function updateSortUI() {
     btnSortId.classList.remove('active');
@@ -290,11 +332,10 @@ btnNext.addEventListener('click', () => {
 
 (async function init() {
     renderSkeletons();
-    // je pré-charge les listes de filtre
     loadFilterOptions();
     
-    //charger les pokemons
-    masterList = await pokeLiteApiFetcher();
+    fullRepository = await pokeLiteApiFetcher();
+    filteredRepository = [...fullRepository];
     
     mainProcess();
 })();
