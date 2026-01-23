@@ -1,8 +1,5 @@
 import type { Pokemon } from "../types/poke-type";
-
-
-const API_URL = "https://pokeapi.co/api/v2";
-const API_TYPE = "pokemon";
+import { API_TYPE, API_URL } from "../global-consts/consts.ts"
 
 export async function pokeApiFetcher(identificator: string | number) : Promise<Pokemon | null> {
     try{

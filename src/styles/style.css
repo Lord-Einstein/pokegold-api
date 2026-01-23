@@ -273,6 +273,7 @@ h1 {
   padding-bottom: 2rem;
 }
 
+
 @media (max-width: 1200px) {
   .cards-grid {
     grid-template-columns: repeat(3, 1fr);
