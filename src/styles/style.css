@@ -349,3 +349,106 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* --- CUSTOM DROPDOWN --- */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+  min-width: 180px;
+  font-family: inherit;
+  z-index: 50; /* Doit passer au dessus des cartes */
+}
+
+/* Le bouton visible */
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(30, 35, 40, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+}
+
+.select-trigger:hover {
+  border-color: #c9a86a;
+  box-shadow: 0 0 10px rgba(201, 168, 106, 0.2);
+}
+
+/* La liste déroulante (cachée par défaut) */
+.select-options {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: #23282e;
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+  max-height: 300px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+/* État ouvert */
+.custom-select-container.open .select-options {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.custom-select-container.open .select-trigger {
+  border-color: #c9a86a;
+}
+
+/* Les items individuels */
+.select-option {
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+  color: #ccc;
+}
+
+.select-option:last-child {
+  border-bottom: none;
+}
+
+.select-option:hover {
+  background: rgba(201, 168, 106, 0.15);
+  color: white;
+}
+
+.select-option.selected {
+  background: rgba(201, 168, 106, 0.3);
+  color: #c9a86a;
+  font-weight: bold;
+}
+
+/* Style spécifique pour l'image du type */
+.option-type-img {
+  width: auto;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+
+.arrow {
+  font-size: 0.8em;
+  transition: transform 0.3s;
+}
+
+.custom-select-container.open .arrow {
+  transform: rotate(180deg);
+}

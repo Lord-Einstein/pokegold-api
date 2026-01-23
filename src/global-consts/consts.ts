@@ -62,7 +62,7 @@ export const POKE_CARD_COMPONENT_STYLE = `
       cursor: pointer;
       overflow: hidden;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid rgba(139, 92, 46, 0.4);
+      border: 2px solid rgba(139, 92, 46, 0.4);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
       transform-style: preserve-3d;
       min-height: 360px;
@@ -171,8 +171,8 @@ export const POKE_CARD_COMPONENT_STYLE = `
 
     .card-img {
       width: 90%;
-      height: auto;
-      max-height: 100%;
+      height: 150%;
+      //max-height: 100%;
       object-fit: contain;
       filter: 
         drop-shadow(0 8px 16px rgba(0, 0, 0, 0.8))

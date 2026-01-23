@@ -38,7 +38,7 @@ export class PokemonGridCard extends HTMLElement {
     if (!card) return;
 
     card.addEventListener('mousemove', (e: MouseEvent) => {
-      card.style.transition = 'none'; 
+      card.style.transition = 'none'; // Stop la transition pour la réactivité
 
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -47,18 +47,26 @@ export class PokemonGridCard extends HTMLElement {
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       
-      const rotateY = ((x - centerX) / centerX) * 8;
-      const rotateX = ((centerY - y) / centerY) * 8;
+      const rotateY = ((x - centerX) / centerX) * 10;
+      const rotateX = ((centerY - y) / centerY) * 10;
+
+      const propX = (x / rect.width) * 100;
+      const propY = (y / rect.height) * 100;
 
       card.style.setProperty('--rotate-x', `${rotateX}deg`);
       card.style.setProperty('--rotate-y', `${rotateY}deg`);
+      
+      card.style.setProperty('--pointer-x', `${propX}%`);
+      card.style.setProperty('--pointer-y', `${propY}%`);
     });
 
     card.addEventListener('mouseleave', () => {
-      card.style.transition = 'transform 0.5s ease'; 
-      
+      card.style.transition = 'transform 0.5s ease';
       card.style.setProperty('--rotate-x', '0deg');
       card.style.setProperty('--rotate-y', '0deg');
+      
+      card.style.setProperty('--pointer-x', '50%');
+      card.style.setProperty('--pointer-y', '50%');
     });
   }
 

@@ -1,10 +1,10 @@
 import './styles/style.css'
 import './components/poke-list-card'
-
+import { POKEPEDIA_TYPE_IMAGES, GEN_ICONS } from './global-consts/pokepedia-icons' // Importe le fichier créé étape 1
 import { pokeLiteApiFetcher, fetchFiltersList, fetchPokemonByFilter } from './services/details-api'
 
 const isMobile = window.innerWidth < 768;
-const displayLimit = isMobile ? 4 : 4;
+const displayLimit = isMobile ? 4 : 8; // J'ai remis 8 pour desktop, plus sympa
 const NOT_FOUND_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
 type LitePokemon = { name: string; url: string; };
@@ -16,9 +16,15 @@ let filteredRepository: LitePokemon[] = [];
 let currentDisplayList: LitePokemon[] = []; 
 
 let currentOffset = 0;
-
 let activeSort: SortMode = 'id';
 let activeOrder: OrderMode = 'asc';
+
+// --- Gestion d'état des filtres (plus de .value sur les select) ---
+let activeFilters = {
+    type: 'all',
+    gen: 'all',
+    ability: 'all'
+};
 
 const appDiv = document.querySelector<HTMLDivElement>('#app')!;
 
@@ -42,15 +48,37 @@ appDiv.innerHTML = `
 
     <div id="filter-panel" class="filter-panel">
       <div class="filter-grid">
-        <select id="select-type" class="custom-select">
-          <option value="all">Tous Types</option>
-        </select>
-        <select id="select-gen" class="custom-select">
-          <option value="all">Générations</option>
-        </select>
-        <select id="select-ability" class="custom-select">
-          <option value="all">Capacités</option>
-        </select>
+        
+        <div id="dropdown-type" class="custom-select-container">
+            <div class="select-trigger">
+                <span>Tous Types</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+            </div>
+            <div class="select-options">
+                <div class="select-option selected" data-value="all">Tous Types</div>
+                </div>
+        </div>
+
+        <div id="dropdown-gen" class="custom-select-container">
+            <div class="select-trigger">
+                <span>Générations</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+            </div>
+            <div class="select-options">
+                <div class="select-option selected" data-value="all">Toutes Générations</div>
+            </div>
+        </div>
+
+        <div id="dropdown-ability" class="custom-select-container">
+             <div class="select-trigger">
+                <span>Capacités</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+            </div>
+            <div class="select-options">
+                <div class="select-option selected" data-value="all">Toutes Capacités</div>
+            </div>
+        </div>
+
         <button id="sort-id" class="sort-btn active">
           <i class="fa-solid fa-hashtag"></i> ID <span id="icon-id">▲</span>
         </button>
@@ -74,6 +102,7 @@ appDiv.innerHTML = `
   </div>
 `;
 
+// -- Selecteurs --
 const container = document.getElementById('pokemon-container')!;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 const paginationControls = document.getElementById('pagination-controls')!;
@@ -83,12 +112,51 @@ const pageInput = document.getElementById('page-input') as HTMLInputElement;
 const totalPagesSpan = document.getElementById('total-pages')!;
 const filterPanel = document.getElementById('filter-panel')!;
 const btnToggleFilters = document.getElementById('toggle-filters')!;
-
-const selectType = document.getElementById('select-type') as HTMLSelectElement;
-const selectGen = document.getElementById('select-gen') as HTMLSelectElement;
-const selectAbility = document.getElementById('select-ability') as HTMLSelectElement;
 const btnSortId = document.getElementById('sort-id') as HTMLButtonElement;
 const btnSortName = document.getElementById('sort-name') as HTMLButtonElement;
+
+
+// --- LOGIQUE CUSTOM DROPDOWN ---
+function setupDropdown(id: string, onSelect: (val: string) => void) {
+    const container = document.getElementById(id)!;
+    const trigger = container.querySelector('.select-trigger')!;
+    const optionsContainer = container.querySelector('.select-options')!;
+    const triggerText = trigger.querySelector('span')!;
+
+    // Toggle ouverture
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation(); // Empêche la fermeture immédiate
+        // Ferme les autres
+        document.querySelectorAll('.custom-select-container').forEach(el => {
+            if(el !== container) el.classList.remove('open');
+        });
+        container.classList.toggle('open');
+    });
+
+    // Sélection d'une option (Event Delegation)
+    optionsContainer.addEventListener('click', (e) => {
+        const option = (e.target as HTMLElement).closest('.select-option');
+        if (!option) return;
+
+        const val = option.getAttribute('data-value');
+        if (!val) return;
+
+        // Visuel
+        optionsContainer.querySelectorAll('.select-option').forEach(o => o.classList.remove('selected'));
+        option.classList.add('selected');
+        
+        // Mise à jour du texte du trigger (on clone le contenu HTML pour garder l'image)
+        triggerText.innerHTML = option.innerHTML;
+
+        container.classList.remove('open');
+        onSelect(val);
+    });
+}
+
+// Fermeture au clic dehors
+document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-select-container').forEach(el => el.classList.remove('open'));
+});
 
 
 function getIdFromUrl(url: string): number {
@@ -150,7 +218,6 @@ function renderPage() {
 
     const pageItems = currentDisplayList.slice(currentOffset, currentOffset + displayLimit);
     
-    // Transition fluide instantanée
     container.style.opacity = '0';
     
     setTimeout(() => {
@@ -161,7 +228,6 @@ function renderPage() {
         container.innerHTML = html;
         container.style.opacity = '1';
 
-        // Scroll instantané vers le haut des cartes
         window.scrollTo({
             top: container.offsetTop - 120,
             behavior: 'instant'
@@ -196,26 +262,65 @@ async function loadFilterOptions() {
         fetchFiltersList('ability')
     ]);
 
+    // --- Remplissage TYPES avec Images Pokepedia ---
+    const typesContainer = document.querySelector('#dropdown-type .select-options')!;
     types.forEach((t: any) => {
-        selectType.innerHTML += `<option value="${t.url}">${t.name.toUpperCase()}</option>`;
+        const imgUrl = POKEPEDIA_TYPE_IMAGES[t.name] || ''; 
+        // Si on a une image, on l'affiche, sinon juste le texte
+        const content = imgUrl 
+            ? `<img src="${imgUrl}" alt="${t.name}" class="option-type-img"> ${t.name.toUpperCase()}`
+            : t.name.toUpperCase();
+
+        typesContainer.innerHTML += `
+            <div class="select-option" data-value="${t.url}">
+                ${content}
+            </div>`;
     });
 
+    // --- Remplissage GENERATIONS ---
+    const gensContainer = document.querySelector('#dropdown-gen .select-options')!;
     gens.forEach((g: any) => {
-        const genNum = g.name.split('-')[1];
-        selectGen.innerHTML += `<option value="${g.url}">Gen ${genNum.toUpperCase()}</option>`;
+        const genNum = g.name.split('-')[1] || ''; // ex: generation-i -> i
+        // Petit icône de chiffre ou texte simple
+        const icon = GEN_ICONS[g.name] || '🎮';
+        
+        gensContainer.innerHTML += `
+            <div class="select-option" data-value="${g.url}">
+                <span>${icon} Gen ${genNum.toUpperCase()}</span>
+            </div>`;
     });
 
+    // --- Remplissage ABILITIES ---
+    const abilitiesContainer = document.querySelector('#dropdown-ability .select-options')!;
     abilities.forEach((a: any) => {
-        selectAbility.innerHTML += `<option value="${a.url}">${a.name}</option>`;
+        abilitiesContainer.innerHTML += `
+            <div class="select-option" data-value="${a.url}">
+                📜 ${a.name}
+            </div>`;
+    });
+
+    // --- Initialisation des événements Dropdown ---
+    setupDropdown('dropdown-type', (val) => {
+        activeFilters.type = val;
+        applyAllFilters();
+    });
+    setupDropdown('dropdown-gen', (val) => {
+        activeFilters.gen = val;
+        applyAllFilters();
+    });
+    setupDropdown('dropdown-ability', (val) => {
+        activeFilters.ability = val;
+        applyAllFilters();
     });
 }
 
 async function applyAllFilters() {
     renderSkeletons();
 
-    const typeUrl = selectType.value;
-    const genUrl = selectGen.value;
-    const abilityUrl = selectAbility.value;
+    // On utilise notre objet d'état au lieu de .value
+    const typeUrl = activeFilters.type;
+    const genUrl = activeFilters.gen;
+    const abilityUrl = activeFilters.ability;
 
     let listsToIntersect: LitePokemon[][] = [];
 
@@ -262,9 +367,7 @@ btnToggleFilters.addEventListener('click', () => {
     filterPanel.classList.toggle('open');
 });
 
-selectType.addEventListener('change', applyAllFilters);
-selectGen.addEventListener('change', applyAllFilters);
-selectAbility.addEventListener('change', applyAllFilters);
+// Les événements 'change' sont maintenant gérés dans setupDropdown via callback
 
 function updateSortUI() {
     btnSortId.classList.remove('active');
@@ -331,7 +434,7 @@ btnNext.addEventListener('click', () => {
 
 (async function init() {
     renderSkeletons();
-    loadFilterOptions();
+    loadFilterOptions(); // Va charger les listes et construire les dropdowns
     
     fullRepository = await pokeLiteApiFetcher();
     filteredRepository = [...fullRepository];
