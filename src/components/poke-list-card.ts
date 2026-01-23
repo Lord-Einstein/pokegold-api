@@ -2,112 +2,232 @@
 import { pokeApiFetcher } from "../services/poke-api.ts";
 import type { Pokemon } from "../types/poke-type.ts";
 
+const TYPE_COLORS: Record<string, string> = {
+  normal: '#A8A878', fighting: '#C03028', flying: '#A890F0', poison: '#A040A0',
+  ground: '#E0C068', rock: '#B8A038', bug: '#A8B820', ghost: '#705898',
+  steel: '#B8B8D0', fire: '#F08030', water: '#6890F0', grass: '#78C850',
+  electric: '#F8D030', psychic: '#F85888', ice: '#98D8D8', dragon: '#7038F8',
+  dark: '#705848', fairy: '#EE99AC'
+};
+
+const TYPE_ICONS: Record<string, string> = {
+  normal: '⚪', fighting: '🥊', flying: '🕊️', poison: '☠️',
+  ground: '⛰️', rock: '🪨', bug: '🐛', ghost: '👻',
+  steel: '⚙️', fire: '🔥', water: '💧', grass: '🌿',
+  electric: '⚡', psychic: '🔮', ice: '❄️', dragon: '🐲',
+  dark: '🌙', fairy: '✨'
+};
+
 const COMPONENT_STYLE = `
   <style>
     :host {
       display: block;
+      width: 100%;
     }
     
     .card {
-      /* Background Glass Dark */
-      background: linear-gradient(145deg, rgba(40,40,40,0.8), rgba(20,20,20,0.95));
-      backdrop-filter: blur(10px);
-      color: #fff;
-      
-      width: 170px;
-      border-radius: 16px;
-      padding: 15px;
-      text-align: center;
-      
-      /* Bordure fine dorée */
-      border: 1px solid rgba(212, 175, 55, 0.15);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      cursor: pointer;
       position: relative;
+      background: linear-gradient(135deg, #2a2f36 0%, #1e2329 100%);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
       overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(139, 92, 46, 0.4);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      transform-style: preserve-3d;
+      perspective: 100px;
+      min-height: 360px;
+      min-width: 250px;
     }
 
-    /* Effet de brillance au survol */
+    /* Bordure décorative intérieure */
     .card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-        transform: scale(0);
-        transition: transform 0.4s;
-        pointer-events: none;
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(139, 92, 46, 0.2);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Gradient de type en haut */
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: radial-gradient(
+        ellipse at top,
+        var(--type-color, rgba(201, 168, 106, 0.15)) 0%,
+        transparent 70%
+      );
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 0;
     }
 
     .card:hover {
-      transform: translateY(-8px) scale(1.02);
-      border-color: #D4AF37; /* Gold */
-      box-shadow: 0 12px 25px rgba(0,0,0,0.7), 0 0 10px rgba(212, 175, 55, 0.3);
+      transform: translateY(-8px) rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg));
+      border-color: var(--type-color, #c9a86a);
+      box-shadow: 
+        0 12px 24px rgba(0, 0, 0, 0.7),
+        0 0 20px var(--type-glow, rgba(201, 168, 106, 0.3));
     }
-    
-    .card:hover::before {
-        transform: scale(1);
+
+    .card:hover::after {
+      opacity: 1;
+    }
+
+    /* Coins décoratifs */
+    .corner {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--type-color, #8b5c2e);
+      opacity: 0.4;
+      z-index: 2;
+      transition: opacity 0.3s;
+    }
+
+    .card:hover .corner {
+      opacity: 1;
+    }
+
+    .corner-tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+    .corner-tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+    .corner-bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+    .corner-br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+    .card-content {
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ID Badge en haut */
+    .card-id {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      background: rgba(139, 92, 46, 0.3);
+      border: 1px solid rgba(201, 168, 106, 0.4);
+      border-radius: 4px;
+      color: var(--type-color, #c9a86a);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 8px var(--type-glow, rgba(201, 168, 106, 0.4));
+    }
+
+    /* Image du Pokemon */
+    .card-img-wrapper {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0.5rem 0;
+      position: relative;
     }
 
     .card-img {
-      width: 110px;
-      height: 110px;
+      width: 90%;
+      height: auto;
+      max-height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 8px 8px rgba(0,0,0,0.6));
-      margin-bottom: 10px;
-      transition: transform 0.3s;
+      filter: 
+        drop-shadow(0 8px 16px rgba(0, 0, 0, 0.8))
+        drop-shadow(0 0 20px var(--type-glow, rgba(201, 168, 106, 0.2)));
+      transition: transform 0.3s ease;
     }
 
     .card:hover .card-img {
-        transform: scale(1.1);
+      transform: scale(1.1);
+      filter: 
+        drop-shadow(0 10px 20px rgba(0, 0, 0, 0.9))
+        drop-shadow(0 0 30px var(--type-glow, rgba(201, 168, 106, 0.4)));
     }
 
-    .card-id {
-      color: #D4AF37; /* Gold ID */
-      font-size: 0.75rem;
-      font-weight: bold;
-      letter-spacing: 1px;
-      margin-bottom: 5px;
-      font-family: monospace;
-    }
-
+    /* Nom du Pokemon */
     .card-name {
       text-transform: capitalize;
-      margin: 5px 0 10px 0;
-      font-size: 1rem;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #f0f0f0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e8e6e3;
+      letter-spacing: 0.5px;
+      margin: 0.6rem 0;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
     }
 
+    /* Types */
     .types {
       display: flex;
       justify-content: center;
-      gap: 5px;
+      gap: 0.4rem;
       flex-wrap: wrap;
+      margin-top: auto;
     }
 
     .type-badge {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 4px 10px;
-      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.6rem;
+      background: rgba(30, 35, 41, 0.8);
+      border: 1px solid rgba(139, 92, 46, 0.3);
+      border-radius: 4px;
       font-size: 0.65rem;
-      color: #ccc;
+      font-weight: 600;
+      color: #a09b93;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
+    .type-icon {
+      font-size: 0.85rem;
+      filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    }
+
     .loading, .error {
-      font-size: 0.8rem;
-      color: #888;
-      padding: 30px 0;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .error {
+      color: #c03028;
+    }
+
+    @media (max-width: 767px) {
+      .card {
+        padding: 0.8rem;
+      }
+
+      .card-id {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.6rem;
+      }
+
+      .card-name {
+        font-size: 0.95rem;
+      }
+
+      .type-badge {
+        font-size: 0.6rem;
+        padding: 0.2rem 0.5rem;
+      }
     }
   </style>
 `;
@@ -122,7 +242,7 @@ export class PokemonGridCard extends HTMLElement {
     const pokemonId = this.getAttribute("pokemon-id");
 
     if (!pokemonId) {
-      this.renderError("Aucun ID correspondant");
+      this.renderError("Aucun ID");
       return;
     }
 
@@ -132,13 +252,39 @@ export class PokemonGridCard extends HTMLElement {
       const data = await pokeApiFetcher(pokemonId);
       if (data) {
         this.renderGridPokemon(data);
+        this.attachInteractions();
       } else {
-        this.renderError("Erreur de requête.");
+        this.renderError("Erreur");
       }
     } catch (error) {
-      this.renderError("Message d'erreur : ");
+      this.renderError("Erreur");
       console.error(error);
     }
+  }
+
+  attachInteractions() {
+    const card = this.shadowRoot?.querySelector('.card') as HTMLElement;
+    if (!card) return;
+
+    card.addEventListener('mousemove', (e: MouseEvent) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const rotateY = ((x - centerX) / centerX) * 8;
+      const rotateX = ((centerY - y) / centerY) * 8;
+
+      card.style.setProperty('--rotate-x', `${rotateX}deg`);
+      card.style.setProperty('--rotate-y', `${rotateY}deg`);
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.setProperty('--rotate-x', '0deg');
+      card.style.setProperty('--rotate-y', '0deg');
+    });
   }
 
   renderLoading() {
@@ -146,7 +292,9 @@ export class PokemonGridCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         ${COMPONENT_STYLE}
         <div class="card">
-          <div class="loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>
+          <div class="loading">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+          </div>
         </div>
       `;
     }
@@ -156,8 +304,8 @@ export class PokemonGridCard extends HTMLElement {
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = `
         ${COMPONENT_STYLE}
-        <div class="card" style="border-color: #ff4444;">
-        <p class="error">${msg}</p>
+        <div class="card">
+          <p class="error">${msg}</p>
         </div>
       `;
     }
@@ -166,8 +314,21 @@ export class PokemonGridCard extends HTMLElement {
   renderGridPokemon(pokemon: Pokemon) {
     const DEFAULT_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
+    const mainType = pokemon.types[0].type.name;
+    const typeColor = TYPE_COLORS[mainType] || '#c9a86a';
+    const typeGlow = typeColor.replace(')', ', 0.4)').replace('rgb', 'rgba');
+
     const typesHtml = pokemon.types
-      .map((element) => `<span class="type-badge">${element.type.name}</span>`)
+      .map((element) => {
+        const typeName = element.type.name;
+        const icon = TYPE_ICONS[typeName] || '⭐';
+        return `
+          <span class="type-badge">
+            <span class="type-icon">${icon}</span>
+            ${typeName}
+          </span>
+        `;
+      })
       .join("");
 
     const sprites = pokemon.sprites;
@@ -180,12 +341,21 @@ export class PokemonGridCard extends HTMLElement {
     if (this.shadowRoot) {
       this.shadowRoot.innerHTML = `
         ${COMPONENT_STYLE}
-        <div class="card">
-          <div class="card-id">#${pokemon.id.toString().padStart(4, "0")}</div>
-          <img class="card-img" src="${image}" alt="${pokemon.name}" loading="lazy" />
-          <h2 class="card-name">${pokemon.name}</h2>
-          <div class="types">
-            ${typesHtml}
+        <div class="card" style="--type-color: ${typeColor}; --type-glow: ${typeGlow}">
+          <div class="corner corner-tl"></div>
+          <div class="corner corner-tr"></div>
+          <div class="corner corner-bl"></div>
+          <div class="corner corner-br"></div>
+          
+          <div class="card-content">
+            <div class="card-id">#${pokemon.id.toString().padStart(4, "0")}</div>
+            <div class="card-img-wrapper">
+              <img class="card-img" src="${image}" alt="${pokemon.name}" loading="lazy" />
+            </div>
+            <h2 class="card-name">${pokemon.name}</h2>
+            <div class="types">
+              ${typesHtml}
+            </div>
           </div>
         </div>
       `;

@@ -3,7 +3,8 @@ import './components/poke-list-card'
 
 import { pokeLiteApiFetcher, fetchFiltersList, fetchPokemonByFilter } from './services/details-api'
 
-const displayLimit = 5;
+const isMobile = window.innerWidth < 768;
+const displayLimit = isMobile ? 4 : 4;
 const NOT_FOUND_IMAGE = "https://cdn3d.iconscout.com/3d/premium/thumb/poke-ball-3d-icon-png-download-4198044.png";
 
 type LitePokemon = { name: string; url: string; };
@@ -23,46 +24,48 @@ const appDiv = document.querySelector<HTMLDivElement>('#app')!;
 
 appDiv.innerHTML = `
   <div class="app-container">
-    <h1 class="app-title"><i class="fa-solid fa-crown" style="font-size: 0.8em; color: var(--text-gold);"></i> Pokédex Pro</h1>
+    <h1>
+      <i class="fa-solid fa-dragon" style="font-size: 0.9em;"></i> 
+      Pokédex
+    </h1>
 
-    <div class="search-container">
-        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 20px; top: 18px; color: var(--text-gold);"></i>
-        <input type="text" id="search-input" class="search-input" style="padding-left: 50px;" placeholder="Rechercher par Nom ou ID...">
+    <div class="controls-wrapper">
+      <div class="search-container">
+        <i class="fa-solid fa-search search-icon"></i>
+        <input type="text" id="search-input" class="search-input" placeholder="Rechercher...">
+      </div>
+
+      <button id="toggle-filters" class="filter-toggle-btn">
+        <i class="fa-solid fa-sliders"></i> Filtres
+      </button>
     </div>
 
-    <div class="filter-wrapper">
-        <button id="toggle-filters" class="filter-toggle-btn">
-            <i class="fa-solid fa-sliders"></i> Filtres & Tris
+    <div id="filter-panel" class="filter-panel">
+      <div class="filter-grid">
+        <select id="select-type" class="custom-select">
+          <option value="all">Tous Types</option>
+        </select>
+        <select id="select-gen" class="custom-select">
+          <option value="all">Générations</option>
+        </select>
+        <select id="select-ability" class="custom-select">
+          <option value="all">Capacités</option>
+        </select>
+        <button id="sort-id" class="sort-btn active">
+          <i class="fa-solid fa-hashtag"></i> ID <span id="icon-id">▲</span>
         </button>
-        <div id="filter-panel" class="filter-panel">
-            <div class="filter-grid">
-                
-                <select id="select-type" class="custom-select">
-                    <option value="all">Tous les Types</option>
-                </select>
-                <select id="select-gen" class="custom-select">
-                    <option value="all">Toutes Générations</option>
-                </select>
-                <select id="select-ability" class="custom-select">
-                    <option value="all">Toutes Capacités</option>
-                </select>
-
-                <button id="sort-id" class="sort-btn active">
-                    <i class="fa-solid fa-hashtag"></i> ID <span id="icon-id">▲</span>
-                </button>
-                <button id="sort-name" class="sort-btn">
-                    <i class="fa-solid fa-font"></i> Nom <span id="icon-name"></span>
-                </button>
-
-            </div>
-        </div>
+        <button id="sort-name" class="sort-btn">
+          <i class="fa-solid fa-font"></i> Nom <span id="icon-name"></span>
+        </button>
+      </div>
     </div>
     
     <div class="pagination-container" id="pagination-controls">
       <button id="btn-prev" disabled><i class="fa-solid fa-chevron-left"></i></button>
       <div class="page-selector">
-          Page <input type="number" id="page-input" class="page-input" value="1" min="1"> 
-          <span style="color: var(--text-muted)"> / </span> <span id="total-pages">...</span>
+        <input type="number" id="page-input" class="page-input" value="1" min="1">
+        <span style="color: var(--text-secondary)"> / </span>
+        <span id="total-pages">...</span>
       </div>
       <button id="btn-next"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
@@ -97,17 +100,9 @@ function renderSkeletons() {
     container.innerHTML = Array(displayLimit).fill('<div class="skeleton-card"></div>').join('');
 }
 
-
-/**
- * Je récupère `filteredRepository`
- * puis j'applique la recherche texte locale.
- * j'aplique le tri
- * et je mets à jour `currentDisplayList` et l'UI.
- */
 function mainProcess() {
     const term = searchInput.value.trim().toLowerCase();
 
-    // filtrage d'nom ou id
     let temp = filteredRepository;
     if (term !== "") {
         temp = filteredRepository.filter(p => {
@@ -133,7 +128,6 @@ function mainProcess() {
 
     currentDisplayList = temp;
     
-    //reset de la pagination en cas de out limit
     if(currentOffset >= currentDisplayList.length) {
         currentOffset = 0;
     }
@@ -144,23 +138,35 @@ function mainProcess() {
 
 function renderPage() {
     if (currentDisplayList.length === 0) {
+        container.style.opacity = '1';
         container.innerHTML = `
             <div class="not-found-container">
                 <img src="${NOT_FOUND_IMAGE}" alt="Introuvable" class="bounce-img">
-                <div class="shadow-pulse"></div>
-                <h3 style="color:var(--text-gold); margin-top:20px;">Aucun Pokémon trouvé</h3>
-                <p>Essayez de modifier vos filtres.</p>
+                <h3>Aucun Pokémon trouvé</h3>
+                <p>Modifiez vos critères de recherche</p>
             </div>`;
         return;
     }
 
     const pageItems = currentDisplayList.slice(currentOffset, currentOffset + displayLimit);
     
-    const html = pageItems.map(p => 
-        `<pokemon-card pokemon-id="${getIdFromUrl(p.url)}"></pokemon-card>`
-    ).join('');
+    // Transition fluide instantanée
+    container.style.opacity = '0';
+    
+    setTimeout(() => {
+        const html = pageItems.map((p, index) => 
+            `<pokemon-card pokemon-id="${getIdFromUrl(p.url)}" style="animation-delay: ${index * 0.05}s"></pokemon-card>`
+        ).join('');
 
-    container.innerHTML = html;
+        container.innerHTML = html;
+        container.style.opacity = '1';
+
+        // Scroll instantané vers le haut des cartes
+        window.scrollTo({
+            top: container.offsetTop - 120,
+            behavior: 'instant'
+        });
+    }, 200);
 }
 
 function updatePaginationUI() {
@@ -172,7 +178,7 @@ function updatePaginationUI() {
         paginationControls.style.display = 'none';
         return;
     }
-    paginationControls.style.display = 'inline-flex';
+    paginationControls.style.display = 'flex';
 
     pageInput.value = currentPage.toString();
     pageInput.max = totalPages.toString();
@@ -184,7 +190,6 @@ function updatePaginationUI() {
 
 
 async function loadFilterOptions() {
-    // chargement des différentes listes de filtres en même temps
     const [types, gens, abilities] = await Promise.all([
         fetchFiltersList('type'),
         fetchFiltersList('generation'),
@@ -196,7 +201,8 @@ async function loadFilterOptions() {
     });
 
     gens.forEach((g: any) => {
-        selectGen.innerHTML += `<option value="${g.url}">GÉNÉRATION ${g.name.split('-')[1].toUpperCase()}</option>`;
+        const genNum = g.name.split('-')[1];
+        selectGen.innerHTML += `<option value="${g.url}">Gen ${genNum.toUpperCase()}</option>`;
     });
 
     abilities.forEach((a: any) => {
@@ -204,11 +210,6 @@ async function loadFilterOptions() {
     });
 }
 
-/**
- * logique de cobinaison de mes filtres
- * Si je change un filtre je check les autres
- * et si un select est déja ctionné je prends la liste qu'il retourne pour agir dessus
- */
 async function applyAllFilters() {
     renderSkeletons();
 
@@ -235,10 +236,8 @@ async function applyAllFilters() {
         }
 
         if (listsToIntersect.length === 0) {
-            //s'il y'a vraiment rien en je charge toute la liste d base
             filteredRepository = [...fullRepository];
         } else {
-            
             let result = listsToIntersect[0];
 
             for (let i = 1; i < listsToIntersect.length; i++) {
@@ -254,7 +253,7 @@ async function applyAllFilters() {
 
     } catch (e) {
         console.error("Erreur de filtrage.", e);
-        container.innerHTML = `<p style="color:red">Erreur de récupération des filtres.</p>`;
+        container.innerHTML = `<p style="color:#c03028; grid-column: 1 / -1;">Erreur lors du filtrage</p>`;
     }
 }
 
