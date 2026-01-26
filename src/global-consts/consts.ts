@@ -26,24 +26,24 @@ export const TYPE_COLORS: Record<string, string> = {
 };
 
 export const TYPE_ICONS: Record<string, string> = {
-  normal: "⚪",
-  fighting: "🥊",
-  flying: "🕊️",
-  poison: "☠️",
-  ground: "⛰️",
-  rock: "🪨",
-  bug: "🐛",
-  ghost: "👻",
-  steel: "⚙️",
-  fire: "🔥",
-  water: "💧",
-  grass: "🌿",
-  electric: "⚡",
-  psychic: "🔮",
-  ice: "❄️",
-  dragon: "🐲",
-  dark: "🌙",
-  fairy: "✨",
+  normal: "https://www.pokebip.com/pokedex-images/types/normal.png",
+  fighting: "https://www.pokebip.com/pokedex-images/types/combat.png",
+  flying: "https://www.pokebip.com/pokedex-images/types/vol.png",
+  poison: "https://www.pokebip.com/pokedex-images/types/poison.png",
+  ground: "https://www.pokebip.com/pokedex-images/types/sol.png",  
+  rock: "https://www.pokebip.com/pokedex-images/types/roche.png",
+  bug: "https://www.pokebip.com/pokedex-images/types/insecte.png",
+  ghost: "https://www.pokebip.com/pokedex-images/types/spectre.png",
+  steel: "https://www.pokebip.com/pokedex-images/types/acier.png",
+  fire: "https://www.pokebip.com/pokedex-images/types/feu.png",
+  water: "https://www.pokebip.com/pokedex-images/types/eau.png",
+  grass: "https://www.pokebip.com/pokedex-images/types/plante.png",
+  electric: "https://www.pokebip.com/pokedex-images/types/electrik.png",
+  psychic: "https://www.pokebip.com/pokedex-images/types/psy.png",
+  ice: "https://www.pokebip.com/pokedex-images/types/glace.png",
+  dragon: "https://www.pokebip.com/pokedex-images/types/dragon.png",
+  dark: "https://www.pokebip.com/pokedex-images/types/tenebres.png",
+  fairy: "https://www.pokebip.com/pokedex-images/types/fee.png",
 };
 
 export const POKE_CARD_COMPONENT_STYLE = `
@@ -203,8 +203,9 @@ export const POKE_CARD_COMPONENT_STYLE = `
     .types {
       display: flex;
       justify-content: center;
+      align-items: center;
       gap: 0.4rem;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       margin-top: auto;
     }
 
@@ -213,8 +214,8 @@ export const POKE_CARD_COMPONENT_STYLE = `
       align-items: center;
       gap: 0.3rem;
       padding: 0.25rem 0.6rem;
-      background: rgba(30, 35, 41, 0.8);
-      border: 1px solid rgba(139, 92, 46, 0.3);
+      background: transparent;
+      border: 0px solid rgba(139, 92, 46, 0.3);
       border-radius: 4px;
       font-size: 0.65rem;
       font-weight: 600;
@@ -226,6 +227,13 @@ export const POKE_CARD_COMPONENT_STYLE = `
     .type-icon {
       font-size: 0.85rem;
       filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    }
+
+    .type-img{
+      width: auto;
+      height: 18px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
     }
 
     .loading, .error {

@@ -106,8 +106,7 @@ export class PokemonGridCard extends HTMLElement {
         const icon = TYPE_ICONS[typeName] || '⭐';
         return `
           <span class="type-badge">
-            <span class="type-icon">${icon}</span>
-            ${typeName}
+            <span class="type-icon"><img class="type-img" src="${icon}" alt="${typeName}"></span>
           </span>
         `;
       })

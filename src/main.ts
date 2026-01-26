@@ -15,11 +15,12 @@ let fullRepository: LitePokemon[] = [];
 let filteredRepository: LitePokemon[] = [];
 let currentDisplayList: LitePokemon[] = []; 
 
+const corrruptedTypes = ["unknown", "stellar", "shadow"];
+
 let currentOffset = 0;
 let activeSort: SortMode = 'id';
 let activeOrder: OrderMode = 'asc';
 
-// --- Gestion d'état des filtres (plus de .value sur les select) ---
 let activeFilters = {
     type: 'all',
     gen: 'all',
@@ -102,7 +103,7 @@ appDiv.innerHTML = `
   </div>
 `;
 
-// -- Selecteurs --
+
 const container = document.getElementById('pokemon-container')!;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 const paginationControls = document.getElementById('pagination-controls')!;
@@ -116,24 +117,20 @@ const btnSortId = document.getElementById('sort-id') as HTMLButtonElement;
 const btnSortName = document.getElementById('sort-name') as HTMLButtonElement;
 
 
-// --- LOGIQUE CUSTOM DROPDOWN ---
 function setupDropdown(id: string, onSelect: (val: string) => void) {
     const container = document.getElementById(id)!;
     const trigger = container.querySelector('.select-trigger')!;
     const optionsContainer = container.querySelector('.select-options')!;
     const triggerText = trigger.querySelector('span')!;
 
-    // Toggle ouverture
     trigger.addEventListener('click', (e) => {
-        e.stopPropagation(); // Empêche la fermeture immédiate
-        // Ferme les autres
+        e.stopPropagation();
         document.querySelectorAll('.custom-select-container').forEach(el => {
             if(el !== container) el.classList.remove('open');
         });
         container.classList.toggle('open');
     });
 
-    // Sélection d'une option (Event Delegation)
     optionsContainer.addEventListener('click', (e) => {
         const option = (e.target as HTMLElement).closest('.select-option');
         if (!option) return;
@@ -141,11 +138,9 @@ function setupDropdown(id: string, onSelect: (val: string) => void) {
         const val = option.getAttribute('data-value');
         if (!val) return;
 
-        // Visuel
         optionsContainer.querySelectorAll('.select-option').forEach(o => o.classList.remove('selected'));
         option.classList.add('selected');
         
-        // Mise à jour du texte du trigger (on clone le contenu HTML pour garder l'image)
         triggerText.innerHTML = option.innerHTML;
 
         container.classList.remove('open');
@@ -153,7 +148,6 @@ function setupDropdown(id: string, onSelect: (val: string) => void) {
     });
 }
 
-// Fermeture au clic dehors
 document.addEventListener('click', () => {
     document.querySelectorAll('.custom-select-container').forEach(el => el.classList.remove('open'));
 });
@@ -262,27 +256,33 @@ async function loadFilterOptions() {
         fetchFiltersList('ability')
     ]);
 
-    // --- Remplissage TYPES avec Images Pokepedia ---
+    //remplir le select des types 
     const typesContainer = document.querySelector('#dropdown-type .select-options')!;
     types.forEach((t: any) => {
-        const imgUrl = POKEPEDIA_TYPE_IMAGES[t.name] || ''; 
-        // Si on a une image, on l'affiche, sinon juste le texte
-        const content = imgUrl 
-            ? `<img src="${imgUrl}" alt="${t.name}" class="option-type-img"> ${t.name.toUpperCase()}`
-            : t.name.toUpperCase();
 
-        typesContainer.innerHTML += `
-            <div class="select-option" data-value="${t.url}">
-                ${content}
-            </div>`;
+        //Condition pour ne pas mettre les types corrompus
+        if(!(corrruptedTypes.includes(t.name))) {
+
+            const imgUrl = POKEPEDIA_TYPE_IMAGES[t.name] || ''; 
+            const content = imgUrl 
+                ? `<img src="${imgUrl}" alt="${t.name}" class="option-type-img">`
+                : t.name.toUpperCase();
+
+            typesContainer.innerHTML += `
+                <div class="select-option" data-value="${t.url}">
+                    ${content}
+                </div>
+            `;
+        }
+
+       
     });
 
-    // --- Remplissage GENERATIONS ---
+    //remplir les générations
     const gensContainer = document.querySelector('#dropdown-gen .select-options')!;
     gens.forEach((g: any) => {
-        const genNum = g.name.split('-')[1] || ''; // ex: generation-i -> i
-        // Petit icône de chiffre ou texte simple
-        const icon = GEN_ICONS[g.name] || '🎮';
+        const genNum = g.name.split('-')[1] || '?';
+        const icon = GEN_ICONS[g.name] || '❓';
         
         gensContainer.innerHTML += `
             <div class="select-option" data-value="${g.url}">
@@ -290,7 +290,7 @@ async function loadFilterOptions() {
             </div>`;
     });
 
-    // --- Remplissage ABILITIES ---
+    //Afficher les abilities
     const abilitiesContainer = document.querySelector('#dropdown-ability .select-options')!;
     abilities.forEach((a: any) => {
         abilitiesContainer.innerHTML += `
@@ -299,7 +299,6 @@ async function loadFilterOptions() {
             </div>`;
     });
 
-    // --- Initialisation des événements Dropdown ---
     setupDropdown('dropdown-type', (val) => {
         activeFilters.type = val;
         applyAllFilters();
@@ -317,7 +316,6 @@ async function loadFilterOptions() {
 async function applyAllFilters() {
     renderSkeletons();
 
-    // On utilise notre objet d'état au lieu de .value
     const typeUrl = activeFilters.type;
     const genUrl = activeFilters.gen;
     const abilityUrl = activeFilters.ability;
@@ -367,7 +365,6 @@ btnToggleFilters.addEventListener('click', () => {
     filterPanel.classList.toggle('open');
 });
 
-// Les événements 'change' sont maintenant gérés dans setupDropdown via callback
 
 function updateSortUI() {
     btnSortId.classList.remove('active');
@@ -434,7 +431,7 @@ btnNext.addEventListener('click', () => {
 
 (async function init() {
     renderSkeletons();
-    loadFilterOptions(); // Va charger les listes et construire les dropdowns
+    loadFilterOptions();
     
     fullRepository = await pokeLiteApiFetcher();
     filteredRepository = [...fullRepository];
