@@ -37,6 +37,7 @@ export class PokemonGridCard extends HTMLElement {
     const card = this.shadowRoot?.querySelector('.card') as HTMLElement;
     if (!card) return;
 
+    //mon effet de carte 3D
     card.addEventListener('mousemove', (e: MouseEvent) => {
       card.style.transition = 'none'; // Stop la transition pour la réactivité
 
@@ -68,6 +69,26 @@ export class PokemonGridCard extends HTMLElement {
       card.style.setProperty('--pointer-x', '50%');
       card.style.setProperty('--pointer-y', '50%');
     });
+
+    //eveènement de clic pour lancer le modal
+    card.addEventListener('click', () => {
+
+      const pokemonID = this.getAttribute("pokemon-id");
+      //créer mon evènement personnalisé
+      this.dispatchEvent(new CustomEvent("pokemon-clicked", {
+        detail: {
+          id : pokemonID,
+        },
+
+        //propagation de l'évènement
+        bubbles: true,
+        //Briser la barrière du attach.shadow
+        composed: true,
+
+      }));
+
+    });
+
   }
 
   renderLoading() {
@@ -103,7 +124,7 @@ export class PokemonGridCard extends HTMLElement {
     const typesHtml = pokemon.types
       .map((element) => {
         const typeName = element.type.name;
-        const icon = TYPE_ICONS[typeName] || '⭐';
+        const icon = TYPE_ICONS[typeName] || '❓';
         return `
           <span class="type-badge">
             <span class="type-icon"><img class="type-img" src="${icon}" alt="${typeName}"></span>

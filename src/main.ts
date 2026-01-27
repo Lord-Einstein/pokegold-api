@@ -1,5 +1,6 @@
 import './styles/style.css'
 import './components/poke-list-card'
+import './components/poke-details-modal'
 import { POKEPEDIA_TYPE_IMAGES, GEN_ICONS } from './global-consts/pokepedia-icons' // Importe le fichier créé étape 1
 import { pokeLiteApiFetcher, fetchFiltersList, fetchPokemonByFilter } from './services/details-api'
 
@@ -426,6 +427,25 @@ btnNext.addEventListener('click', () => {
     currentOffset += displayLimit;
     renderPage();
     updatePaginationUI();
+});
+
+
+// MODALE
+
+// écouter l'événement sur tout le document
+document.addEventListener('pokemon-clicked', (e: Event) => {
+    const customEvent = e as CustomEvent;
+    const pokemonId = customEvent.detail.id;
+
+    if (!pokemonId) return;
+
+    const detailElement = document.createElement('pokemon-detail');
+
+    detailElement.setAttribute('pokemon-id', pokemonId);
+
+    document.body.appendChild(detailElement);
+
+    console.log("Hello ! j'ai clic !");
 });
 
 
