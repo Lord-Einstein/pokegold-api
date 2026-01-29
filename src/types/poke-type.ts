@@ -65,7 +65,7 @@ export interface Pokemon {
   id: number;
   name: string;
   height: number; // c'est en décimètres donc pr 7 on a 0.7m, à gérer ap
-  weight: number; // et cà c'est eeeen hectogrammes donc 69 => 6.9kg
+  weight: number; // et cà c'est eeeen hectogrammes donc 69 = 6.9kg
   
   sprites: PokemonSprites;
   types: PokemonType[];

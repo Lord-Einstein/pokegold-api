@@ -23,13 +23,13 @@ export const POKEPEDIA_TYPE_IMAGES: Record<string, string> = {
 };
 
 export const GEN_ICONS: Record<string, string> = {
-    "generation-i": "1️⃣",
-    "generation-ii": "2️⃣",
-    "generation-iii": "3️⃣",
-    "generation-iv": "4️⃣",
-    "generation-v": "5️⃣",
-    "generation-vi": "6️⃣",
-    "generation-vii": "7️⃣",
-    "generation-viii": "8️⃣",
-    "generation-ix": "9️⃣",
+  "generation-i": "1️⃣",
+  "generation-ii": "2️⃣",
+  "generation-iii": "3️⃣",
+  "generation-iv": "4️⃣",
+  "generation-v": "5️⃣",
+  "generation-vi": "6️⃣",
+  "generation-vii": "7️⃣",
+  "generation-viii": "8️⃣",
+  "generation-ix": "9️⃣",
 };

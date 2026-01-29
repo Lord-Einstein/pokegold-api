@@ -48,9 +48,9 @@ export class PokemonModalDetails extends HTMLElement {
         const val = s.base_stat;
         const percent = Math.min((val / 255) * 100, 100); 
         
-        let color = '#ff4d4d'; 
-        if(val >= 60) color = '#ffa600';
-        if(val >= 90) color = '#4caf50';
+        let color = '#fe2727'; 
+        if(val >= 60) color = '#ff9216';
+        if(val >= 90) color = '#23a828';
 
         return `
             <div class="stat-row">

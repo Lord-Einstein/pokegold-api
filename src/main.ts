@@ -275,7 +275,6 @@ async function loadFilterOptions() {
                 </div>
             `;
         }
-
        
     });
 
@@ -288,7 +287,8 @@ async function loadFilterOptions() {
         gensContainer.innerHTML += `
             <div class="select-option" data-value="${g.url}">
                 <span>${icon} Gen ${genNum.toUpperCase()}</span>
-            </div>`;
+            </div>
+        `;
     });
 
     //Afficher les abilities
@@ -442,10 +442,7 @@ document.addEventListener('pokemon-clicked', (e: Event) => {
     const detailElement = document.createElement('pokemon-detail');
 
     detailElement.setAttribute('pokemon-id', pokemonId);
-
     document.body.appendChild(detailElement);
-
-    console.log("Hello ! j'ai clic !");
 });
 
 

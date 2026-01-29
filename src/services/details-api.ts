@@ -52,6 +52,13 @@ export async function fetchFiltersList(category: 'type' | 'generation' | 'abilit
         const data = await apiResponse.json();
 
         const sortedResults = data.results.sort((a:any, b:any) => {
+
+            if(category === 'generation') {
+                const idA = parseInt(a.url.split('/').filter(Boolean).pop());
+                const idB = parseInt(b.url.split('/').filter(Boolean).pop());
+                return idA - idB;
+            }
+
             return a.name.localeCompare(b.name);
         });
 

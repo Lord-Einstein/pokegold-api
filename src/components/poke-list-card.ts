@@ -79,7 +79,6 @@ export class PokemonGridCard extends HTMLElement {
         detail: {
           id : pokemonID,
         },
-
         //propagation de l'évènement
         bubbles: true,
         //Briser la barrière du attach.shadow
