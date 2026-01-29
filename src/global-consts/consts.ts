@@ -25,26 +25,30 @@ export const TYPE_COLORS: Record<string, string> = {
   fairy: "#EE99AC",
 };
 
+
 export const TYPE_ICONS: Record<string, string> = {
-  normal: "https://www.pokebip.com/pokedex-images/types/normal.png",
-  fighting: "https://www.pokebip.com/pokedex-images/types/combat.png",
-  flying: "https://www.pokebip.com/pokedex-images/types/vol.png",
-  poison: "https://www.pokebip.com/pokedex-images/types/poison.png",
-  ground: "https://www.pokebip.com/pokedex-images/types/sol.png",  
-  rock: "https://www.pokebip.com/pokedex-images/types/roche.png",
-  bug: "https://www.pokebip.com/pokedex-images/types/insecte.png",
-  ghost: "https://www.pokebip.com/pokedex-images/types/spectre.png",
-  steel: "https://www.pokebip.com/pokedex-images/types/acier.png",
-  fire: "https://www.pokebip.com/pokedex-images/types/feu.png",
-  water: "https://www.pokebip.com/pokedex-images/types/eau.png",
-  grass: "https://www.pokebip.com/pokedex-images/types/plante.png",
-  electric: "https://www.pokebip.com/pokedex-images/types/electrik.png",
-  psychic: "https://www.pokebip.com/pokedex-images/types/psy.png",
-  ice: "https://www.pokebip.com/pokedex-images/types/glace.png",
-  dragon: "https://www.pokebip.com/pokedex-images/types/dragon.png",
-  dark: "https://www.pokebip.com/pokedex-images/types/tenebres.png",
-  fairy: "https://www.pokebip.com/pokedex-images/types/fee.png",
+  normal: "https://pokedexplore.vercel.app/types/normal.svg",
+  fighting: "https://pokedexplore.vercel.app/types/fighting.svg",
+  flying: "https://pokedexplore.vercel.app/types/flying.svg",
+  poison: "https://pokedexplore.vercel.app/types/poison.svg",
+  ground: "https://pokedexplore.vercel.app/types/ground.svg",
+  rock: "https://pokedexplore.vercel.app/types/rock.svg",
+  bug: "https://pokedexplore.vercel.app/types/bug.svg",
+  ghost: "https://pokedexplore.vercel.app/types/ghost.svg",
+  steel: "https://pokedexplore.vercel.app/types/steel.svg",
+  fire: "https://pokedexplore.vercel.app/types/fire.svg",
+  water: "https://pokedexplore.vercel.app/types/water.svg",
+  grass: "https://pokedexplore.vercel.app/types/grass.svg",
+  electric: "https://pokedexplore.vercel.app/types/electric.svg",
+  psychic: "https://pokedexplore.vercel.app/types/psychic.svg",
+  ice: "https://pokedexplore.vercel.app/types/ice.svg",
+  dragon: "https://pokedexplore.vercel.app/types/dragon.svg",
+  dark: "https://pokedexplore.vercel.app/types/dark.svg",
+  fairy: "https://pokedexplore.vercel.app/types/fairy.svg",
+  stellar: "https://pokedexplore.vercel.app/types/stellar.svg",
+  unknown: "https://pokedexplore.vercel.app/types/unknown.svg"
 };
+
 
 export const POKE_CARD_COMPONENT_STYLE = `
   <style>
