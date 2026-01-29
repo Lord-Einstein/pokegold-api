@@ -8,7 +8,7 @@ export async function pokeApiFetcher(identificator: string | number) : Promise<P
         const apiResponse = await fetch(url);
 
         if(!apiResponse.ok){
-            throw new Error(`Retour d'erreur : ${apiResponse.status} - ${apiResponse.statusText}`);
+            throw new Error(`Retour d'erreur : ${apiResponse.status}`);
         }
 
         const apiData = await apiResponse.json() as Pokemon;

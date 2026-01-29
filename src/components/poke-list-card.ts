@@ -1,6 +1,7 @@
-import { DEFAULT_IMAGE, TYPE_COLORS, TYPE_ICONS, POKE_CARD_COMPONENT_STYLE } from "../global-consts/consts.ts"
-import { pokeApiFetcher } from "../services/poke-api.ts";
 import type { Pokemon } from "../types/poke-type.ts";
+import { pokeApiFetcher } from "../services/poke-api.ts";
+import { DEFAULT_IMAGE, TYPE_COLORS, TYPE_ICONS } from "../global-consts/consts.ts"
+import { POKE_CARD_COMPONENT_STYLE } from "../global-consts/components-style-consts.ts"
 
 
 export class PokemonGridCard extends HTMLElement {
@@ -16,8 +17,6 @@ export class PokemonGridCard extends HTMLElement {
       this.renderError("Aucun ID");
       return;
     }
-
-    this.renderLoading();
 
     try {
       const data = await pokeApiFetcher(pokemonId);
@@ -37,9 +36,8 @@ export class PokemonGridCard extends HTMLElement {
     const card = this.shadowRoot?.querySelector('.card') as HTMLElement;
     if (!card) return;
 
-    //mon effet de carte 3D
     card.addEventListener('mousemove', (e: MouseEvent) => {
-      card.style.transition = 'none'; // Stop la transition pour la réactivité
+      card.style.transition = 'none';
 
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -70,11 +68,9 @@ export class PokemonGridCard extends HTMLElement {
       card.style.setProperty('--pointer-y', '50%');
     });
 
-    //eveènement de clic pour lancer le modal
     card.addEventListener('click', () => {
 
       const pokemonID = this.getAttribute("pokemon-id");
-      //créer mon evènement personnalisé
       this.dispatchEvent(new CustomEvent("pokemon-clicked", {
         detail: {
           id : pokemonID,
@@ -88,19 +84,6 @@ export class PokemonGridCard extends HTMLElement {
 
     });
 
-  }
-
-  renderLoading() {
-    if (this.shadowRoot) {
-      this.shadowRoot.innerHTML = `
-        ${POKE_CARD_COMPONENT_STYLE}
-        <div class="card">
-          <div class="loading">
-            <i class="fa-solid fa-spinner fa-spin"></i>
-          </div>
-        </div>
-      `;
-    }
   }
 
   renderError(msg: string): void {
@@ -118,7 +101,7 @@ export class PokemonGridCard extends HTMLElement {
    
     const mainType = pokemon.types[0].type.name;
     const typeColor = TYPE_COLORS[mainType] || '#c9a86a';
-    const typeGlow = typeColor.replace(')', ', 0.4)').replace('rgb', 'rgba');
+    const typeGlow = typeColor.replace(")" , ", 0.3)").replace('rgb', 'rgba');
 
     const typesHtml = pokemon.types
       .map((element) => {

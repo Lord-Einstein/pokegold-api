@@ -3,7 +3,6 @@ import { DEFAULT_IMAGE, TYPE_COLORS } from "../global-consts/consts.ts"
 import type { Pokemon } from "../types/poke-type";
 
 
-
 export class PokemonModalDetails extends HTMLElement {
 
     private _id: string | null = null;
@@ -31,7 +30,7 @@ export class PokemonModalDetails extends HTMLElement {
 
         if(!this._id) return;
 
-        this.renderLoading() //Fonction de chargement pendant le fetch
+        this.renderLoading()
         try {
             this._pokemon = await pokeApiFetcher(this._id);
             if(this._pokemon) this.render();
