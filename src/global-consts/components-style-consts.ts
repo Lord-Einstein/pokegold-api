@@ -297,4 +297,3 @@ appDiv.innerHTML = `
     <div id="pokemon-container" class="cards-grid"></div>
   </div>
 `;
-

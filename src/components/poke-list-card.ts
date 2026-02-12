@@ -101,15 +101,18 @@ export class PokemonGridCard extends HTMLElement {
    
     const mainType = pokemon.types[0].type.name;
     const typeColor = TYPE_COLORS[mainType] || '#c9a86a';
-    const typeGlow = typeColor.replace(")" , ", 0.3)").replace('rgb', 'rgba');
+    const typeGlow = typeColor.replace(")" , ", 0.4)").replace('rgb', 'rgba');
 
     const typesHtml = pokemon.types
       .map((element) => {
         const typeName = element.type.name;
         const icon = TYPE_ICONS[typeName] || '❓';
+        const specificColor = TYPE_COLORS[typeName] || '#777';
+        
         return `
-          <span class="type-badge">
-            <span class="type-icon"><img class="type-img" src="${icon}" alt="${typeName}"></span>
+          <span class="type-badge" style="--badge-color: ${specificColor}">
+            <img class="type-img" src="${icon}" alt="${typeName}">
+            <span class="type-name">${typeName}</span>
           </span>
         `;
       })

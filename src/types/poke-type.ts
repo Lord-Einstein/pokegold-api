@@ -52,6 +52,32 @@ export interface PokemonMove {
   move: APINamedRessource;
 }
 
+export interface PokemonSpeciesFlavorText {
+  flavor_text: string;
+  language: APINamedRessource;
+  version: APINamedRessource;
+}
+
+export interface PokemonSpecies {
+  id: number;
+  name: string;
+  flavor_text_entries: PokemonSpeciesFlavorText[];
+}
+
+export interface TypeDamageRelations {
+  no_damage_to: APINamedRessource[];
+  half_damage_to: APINamedRessource[];
+  double_damage_to: APINamedRessource[];
+  no_damage_from: APINamedRessource[];
+  half_damage_from: APINamedRessource[];
+  double_damage_from: APINamedRessource[];
+}
+
+export interface TypeDetail {
+  id: number;
+  name: string;
+  damage_relations: TypeDamageRelations;
+}
 
 export interface Pokemon {
   id: number;
@@ -66,4 +92,6 @@ export interface Pokemon {
   moves: PokemonMove[];
   cries: PokemonCries;
 
+  species: APINamedRessource; 
+  
 }
