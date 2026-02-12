@@ -354,20 +354,49 @@ btnNext.addEventListener('click', () => {
 });
 
 
-// MODALE
+//gérer la modale
+function openModal(pokemonId: number | string) {
+    const oldModal = document.querySelector('pokemon-detail');
+    if (oldModal) oldModal.remove();
 
-// écouter l'événement sur tout le document
+    const targetId = Number(pokemonId);
+    const detailElement = document.createElement('pokemon-detail');
+    detailElement.setAttribute('pokemon-id', targetId.toString());
+
+    const currentIndex = currentDisplayList.findIndex(p => getIdFromUrl(p.url) === targetId);
+
+    if (currentIndex !== -1) {
+        if (currentIndex > 0) {
+            const prevPokemon = currentDisplayList[currentIndex - 1];
+            detailElement.setAttribute('prev-id', getIdFromUrl(prevPokemon.url).toString());
+        }
+        
+        if (currentIndex < currentDisplayList.length - 1) {
+            const nextPokemon = currentDisplayList[currentIndex + 1];
+            detailElement.setAttribute('next-id', getIdFromUrl(nextPokemon.url).toString());
+        }
+    } else {
+        console.warn("Pokémon non trouvé dans la liste courante.", targetId);
+    }
+
+    detailElement.addEventListener('navigate-pokemon', (e: Event) => {
+        const customEvent = e as CustomEvent;
+        const newId = Number(customEvent.detail.id);
+        openModal(newId); 
+    });
+
+    document.body.appendChild(detailElement);
+}
+
 document.addEventListener('pokemon-clicked', (e: Event) => {
     const customEvent = e as CustomEvent;
-    const pokemonId = customEvent.detail.id;
+    const pokemonId = Number(customEvent.detail.id);
 
-    if (!pokemonId) return;
-
-    const detailElement = document.createElement('pokemon-detail');
-
-    detailElement.setAttribute('pokemon-id', pokemonId);
-    document.body.appendChild(detailElement);
+    if (pokemonId) {
+        openModal(pokemonId);
+    }
 });
+
 
 export async function init() {
     renderSkeletons();

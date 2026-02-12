@@ -1,5 +1,5 @@
 import { pokeApiFetcher } from "../services/poke-api";
-import { DEFAULT_IMAGE, TYPE_COLORS, TYPE_ICONS } from "../global-consts/consts.ts";
+import { DEFAULT_IMAGE, TYPE_COLORS, TYPE_ICONS } from "../global-consts/consts";
 import type { Pokemon } from "../types/poke-type";
 
 interface DamageRelation { name: string; url: string; }
@@ -7,6 +7,10 @@ interface TypeResponse { damage_relations: { double_damage_from: DamageRelation[
 
 export class PokemonModalDetails extends HTMLElement {
     private _id: string | null = null;
+    // Nouveaux états pour la navigation
+    private _prevId: string | null = null;
+    private _nextId: string | null = null;
+    
     private _pokemon: Pokemon | null = null;
     private _species: any | null = null;
     private _weaknesses: Map<string, number> = new Map();
@@ -16,12 +20,20 @@ export class PokemonModalDetails extends HTMLElement {
         this.attachShadow({ mode: "open" });
     }
 
-    static get observedAttributes() { return ["pokemon-id"]; }
+    static get observedAttributes() { return ["pokemon-id", "prev-id", "next-id"]; }
 
     attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-        if (name === "pokemon-id" && oldValue !== newValue) {
-            this._id = newValue;
-            this.fetchData();
+        if (oldValue !== newValue) {
+            if (name === "pokemon-id") {
+                this._id = newValue;
+                this.fetchData();
+            } else if (name === "prev-id") {
+                this._prevId = newValue;
+                this.updateNavVisibility();
+            } else if (name === "next-id") {
+                this._nextId = newValue;
+                this.updateNavVisibility();
+            }
         }
     }
 
@@ -65,8 +77,8 @@ export class PokemonModalDetails extends HTMLElement {
     renderLoading() {
         if (this.shadowRoot) {
             this.shadowRoot.innerHTML = `
-            <style>.backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;color:white;font-family:'Rajdhani';letter-spacing:2px;}</style>
-            <div class="backdrop">CHARGEMENT DES DONNÉES...</div>`;
+            <style>.backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;color:white;font-family:'Rajdhani';letter-spacing:2px; z-index: 10000;}</style>
+            <div class="backdrop">CHARGEMENT...</div>`;
         }
     }
 
@@ -82,6 +94,25 @@ export class PokemonModalDetails extends HTMLElement {
         }
     }
 
+    hexToRgb(hex: string) {
+        const bigint = parseInt(hex.slice(1), 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `${r},${g},${b}`;
+    }
+    
+    translateStat(stat: string) {
+        const map: any = { 'hp': 'PV', 'attack': 'Attaque', 'defense': 'Défense', 'special-attack': 'Atq. Spé.', 'special-defense': 'Déf. Spé.', 'speed': 'Vitesse' };
+        return map[stat] || stat;
+    }
+
+    getStatColor(val: number) {
+        if(val < 60) return '#ff4f4f';
+        if(val < 100) return '#ffb300';
+        return '#00ff88';
+    }
+
     render() {
         if (!this._pokemon || !this.shadowRoot) return;
         const p = this._pokemon;
@@ -91,7 +122,7 @@ export class PokemonModalDetails extends HTMLElement {
         const themeColor = TYPE_COLORS[mainType] || '#c9a86a';
         
         const flavorEntry = this._species?.flavor_text_entries.find((e: any) => e.language.name === 'fr') 
-                          || this._species?.flavor_text_entries.find((e: any) => e.language.name === 'en');
+                        || this._species?.flavor_text_entries.find((e: any) => e.language.name === 'en');
         const description = flavorEntry ? flavorEntry.flavor_text.replace(/[\f\n]/g, ' ') : "Aucune description disponible.";
 
         const typesHTML = p.types.map(t => {
@@ -106,7 +137,6 @@ export class PokemonModalDetails extends HTMLElement {
 
         const statsHTML = `<div class="stats-grid-circles">` + p.stats.map(s => {
             const statVal = s.base_stat;
-            // rayon
             const radius = 36; 
             const circumference = 2 * Math.PI * radius;
             const percent = Math.min((statVal / 200) * 100, 100);
@@ -119,22 +149,12 @@ export class PokemonModalDetails extends HTMLElement {
                 <div class="stat-circle-item">
                     <div class="circle-wrapper">
                         <svg class="progress-ring" width="90" height="90">
-                            <circle class="progress-ring__circle-bg"
-                                stroke="rgba(255,255,255,0.1)"
-                                stroke-width="6"
-                                fill="transparent"
-                                r="${radius}" cx="45" cy="45"/>
-                            <circle class="progress-ring__circle"
-                                stroke="${color}"
-                                stroke-width="6"
-                                fill="transparent"
-                                r="${radius}" cx="45" cy="45"
+                            <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.1)" stroke-width="6" fill="transparent" r="${radius}" cx="45" cy="45"/>
+                            <circle class="progress-ring__circle" stroke="${color}" stroke-width="6" fill="transparent" r="${radius}" cx="45" cy="45"
                                 style="stroke-dasharray: ${circumference} ${circumference}; --to-offset: ${offset}; --glow-color: ${color};"
                             />
                         </svg>
-                        <div class="circle-icon" style="color:${color}">
-                            <i class="fa-solid ${iconClass}"></i>
-                        </div>
+                        <div class="circle-icon" style="color:${color}"><i class="fa-solid ${iconClass}"></i></div>
                     </div>
                     <div class="stat-info-text">
                         <span class="stat-num" style="color:${color}">${statVal}</span>
@@ -152,7 +172,7 @@ export class PokemonModalDetails extends HTMLElement {
             }
         });
         if (Object.keys(categorizedWeaknesses).length === 0) {
-            weaknessesHTML = '<p class="empty-msg">Aucune vulnérabilité majeure détectée.</p>';
+            weaknessesHTML = '<p class="empty-msg">Aucune vulnérabilité spéciale détectée.</p>';
         } else {
             Object.keys(categorizedWeaknesses).sort((a,b) => Number(b) - Number(a)).forEach(mult => {
                  const typesList = categorizedWeaknesses[Number(mult)].map(tName => {
@@ -170,7 +190,6 @@ export class PokemonModalDetails extends HTMLElement {
 
         this.shadowRoot.innerHTML = `
         <style>
-            /* Import Font Awesome pour les icones */
             @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
             @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Rajdhani:wght@500;600;700&display=swap');
 
@@ -191,12 +210,68 @@ export class PokemonModalDetails extends HTMLElement {
                 animation: fadeIn 0.3s ease-out;
             }
 
+            /* --- NAVIGATION ARROWS STYLE --- */
+            .nav-btn {
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                background: transparent;
+                border: none;
+                color: rgba(255,255,255,0.2);
+                font-size: 3.5rem;
+                cursor: pointer;
+                z-index: 20000; /* Au dessus de tout */
+                transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+                display: none; /* Masqué par défaut, affiché via JS */
+            }
+
+            #btn-prev { left: 30px; }
+            #btn-next { right: 30px; }
+
+            .nav-btn:hover {
+                color: #fff;
+                /* Glow coloré néon */
+                text-shadow: 0 0 10px var(--theme), 0 0 20px var(--theme), 0 0 40px var(--theme);
+            }
+
+            /* Effet de déplacement au hover */
+            #btn-prev:hover { transform: translateY(-50%) translateX(-5px) scale(1.1); }
+            #btn-next:hover { transform: translateY(-50%) translateX(5px) scale(1.1); }
+
+            /* Animation "Ghost / Residual Frames" */
+            .nav-btn::after {
+                content: '';
+                font-family: "Font Awesome 6 Free"; 
+                font-weight: 900;
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                color: var(--theme);
+                opacity: 0;
+                z-index: -1;
+                transition: 0s;
+            }
+
+            #btn-prev::after { content: '\\f053'; } /* code fa-chevron-left */
+            #btn-next::after { content: '\\f054'; } /* code fa-chevron-right */
+
+            .nav-btn:hover::after {
+                animation: pulseGhost 1s infinite;
+            }
+
+            @keyframes pulseGhost {
+                0% { transform: scale(1); opacity: 0.6; filter: blur(0px); }
+                100% { transform: scale(1.8); opacity: 0; filter: blur(4px); }
+            }
+
+            /* --- END NAVIGATION --- */
+
             .modal-container {
-                overflow: visible;
+                position: relative;
+                overflow: visible; /* Important pour l'image qui dépasse */
                 width: 90vw; max-width: 950px; height: 80vh; min-height: 550px;
                 background: var(--bg-dark);
                 border-radius: 20px;
-                position: relative;
                 display: grid;
                 grid-template-columns: 40% 60%;
                 box-shadow: 
@@ -205,152 +280,54 @@ export class PokemonModalDetails extends HTMLElement {
                     0 20px 40px rgba(0,0,0,0.8);
                 border: 1px solid rgba(var(--theme-rgb), 0.3);
             }
-            .modal-container::before {
-                content:''; position:absolute; inset:0;
-                background: radial-gradient(circle at 30% 50%, rgba(var(--theme-rgb), 0.15) 0%, transparent 60%);
-                pointer-events: none;
-            }
-
-            .col-visual {
-                position: relative; overflow: visible; 
-                display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-                padding-bottom: 40px;
-            }
-            .poke-img-popout {
-                position: absolute; top: -10%; left: -15%;
-                width: 130%; height: auto; object-fit: contain;
-                z-index: 10;
-                filter: drop-shadow(0 30px 25px rgba(0,0,0,0.8));
-                pointer-events: none;
-            }
-            .types-row { display: flex; gap: 10px; z-index: 11; margin-bottom: 20px; }
-            .type-badge {
-                display: flex; align-items: center; gap: 8px;
-                padding: 6px 14px; border-radius: 30px;
-                background: rgba(0,0,0,0.5);
-                border: 1px solid var(--t-color);
-                box-shadow: 0 0 15px rgba(var(--theme-rgb), 0.3);
-                backdrop-filter: blur(5px);
-            }
-            .type-badge img { width: 20px; height: 20px; }
-            .type-badge span { 
-                font-family: 'Rajdhani'; font-weight: 700; color: #fff; 
-                text-transform: uppercase; letter-spacing: 1px;
-                text-shadow: 0 0 5px var(--t-color);
-            }
-
-            .col-data {
-                display: flex; flex-direction: column;
-                padding: 30px;
-                background: rgba(255,255,255,0.02);
-                border-left: 1px solid rgba(var(--theme-rgb), 0.2);
-                overflow: hidden;
-            }
-
-            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-            .poke-name {
-                font-family: 'Cinzel', serif; font-size: 3rem; color: #fff; margin: 0; line-height: 1;
-                text-shadow: 0 0 10px rgba(var(--theme-rgb), 0.5);
-            }
-            .poke-id { font-family: 'Rajdhani'; font-size: 1.2rem; color: var(--theme); letter-spacing: 2px; font-weight: 700; opacity: 0.8; }
             
-            .close-btn {
-                background: none; border: none; color: var(--text-light); font-size: 2rem; cursor: pointer; line-height: 0.5;
-                transition: 0.3s; opacity: 0.6;
-            }
+            .modal-container::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 30% 50%, rgba(var(--theme-rgb), 0.15) 0%, transparent 60%); pointer-events: none; }
+            .col-visual { position: relative; overflow: visible; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 40px; }
+            .poke-img-popout { position: absolute; top: -10%; left: -15%; width: 130%; height: auto; object-fit: contain; z-index: 10; filter: drop-shadow(0 30px 25px rgba(0,0,0,0.8)); pointer-events: none; }
+            .types-row { display: flex; gap: 10px; z-index: 11; margin-bottom: 20px; }
+            .type-badge { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 30px; background: rgba(0,0,0,0.5); border: 1px solid var(--t-color); box-shadow: 0 0 15px rgba(var(--theme-rgb), 0.3); backdrop-filter: blur(5px); }
+            .type-badge img { width: 20px; height: 20px; }
+            .type-badge span { font-family: 'Rajdhani'; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 5px var(--t-color); }
+            .col-data { display: flex; flex-direction: column; padding: 30px; background: rgba(255,255,255,0.02); border-left: 1px solid rgba(var(--theme-rgb), 0.2); overflow: hidden; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+            .poke-name { font-family: 'Cinzel', serif; font-size: 3rem; color: #fff; margin: 0; line-height: 1; text-shadow: 0 0 10px rgba(var(--theme-rgb), 0.5); }
+            .poke-id { font-family: 'Rajdhani'; font-size: 1.2rem; color: var(--theme); letter-spacing: 2px; font-weight: 700; opacity: 0.8; }
+            .close-btn { background: none; border: none; color: var(--text-light); font-size: 2rem; cursor: pointer; line-height: 0.5; transition: 0.3s; opacity: 0.6; }
             .close-btn:hover { color: var(--theme); opacity: 1; transform: rotate(90deg); }
-
-            .tabs-nav {
-                display: flex; gap: 5px; border-bottom: 2px solid rgba(var(--theme-rgb), 0.2); margin-bottom: 20px;
-            }
-            .tab-btn {
-                background: transparent; border: none; padding: 10px 20px;
-                font-family: 'Rajdhani'; font-size: 1.1rem; font-weight: 700; color: #888;
-                text-transform: uppercase; letter-spacing: 1px; cursor: pointer; position: relative; transition: 0.3s;
-            }
-            .tab-btn::after {
-                content:''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px;
-                background: var(--theme); transition: 0.3s;
-            }
+            .tabs-nav { display: flex; gap: 5px; border-bottom: 2px solid rgba(var(--theme-rgb), 0.2); margin-bottom: 20px; }
+            .tab-btn { background: transparent; border: none; padding: 10px 20px; font-family: 'Rajdhani'; font-size: 1.1rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; position: relative; transition: 0.3s; }
+            .tab-btn::after { content:''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px; background: var(--theme); transition: 0.3s; }
             .tab-btn:hover { color: #fff; }
             .tab-btn.active { color: var(--theme); text-shadow: 0 0 10px var(--theme); }
             .tab-btn.active::after { width: 100%; }
-
             .tab-content-container { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
             .tab-panel { display: none; animation: fadeIn 0.3s ease-out; }
             .tab-panel.active { display: block; }
-
             .desc-text { font-family: 'Rajdhani'; font-size: 1.1rem; color: #ccc; font-style: italic; line-height: 1.5; margin-bottom: 25px; }
             .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-            .info-box { 
-                background: rgba(var(--theme-rgb), 0.1); border: 1px solid rgba(var(--theme-rgb), 0.2);
-                padding: 10px; border-radius: 8px; text-align: center;
-            }
+            .info-box { background: rgba(var(--theme-rgb), 0.1); border: 1px solid rgba(var(--theme-rgb), 0.2); padding: 10px; border-radius: 8px; text-align: center; }
             .info-label { font-family: 'Rajdhani'; font-size: 0.8rem; color: var(--theme); text-transform: uppercase; }
             .info-val { font-family: 'Cinzel'; font-size: 1.2rem; color: #fff; font-weight: 700; }
-
-            /* --- STYLE CSS POUR LES CERCLES DE STATS --- */
-            .stats-grid-circles {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr); /* 3 colonnes */
-                gap: 20px;
-                padding-top: 10px;
-            }
-            .stat-circle-item {
-                display: flex; flex-direction: column; align-items: center; gap: 5px;
-            }
-            .circle-wrapper {
-                position: relative;
-                width: 90px; height: 90px;
-                display: flex; justify-content: center; align-items: center;
-            }
-            .progress-ring { transform: rotate(-90deg); /* Commence en haut */ }
-            .progress-ring__circle {
-                transition: stroke-dashoffset 0.35s;
-                transform-origin: 50% 50%;
-                /* Animation d'entrée */
-                stroke-dashoffset: 226; /* Circumference de base */
-                animation: fillCircle 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                animation-delay: 0.2s;
-                
-                /* LE GLOW MAGIQUE */
-                filter: drop-shadow(0 0 4px var(--glow-color));
-            }
-            .circle-icon {
-                position: absolute;
-                font-size: 1.8rem;
-                display: flex; justify-content: center; align-items: center;
-                filter: drop-shadow(0 0 5px currentColor);
-            }
+            .stats-grid-circles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-top: 10px; }
+            .stat-circle-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+            .circle-wrapper { position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; }
+            .progress-ring { transform: rotate(-90deg); }
+            .progress-ring__circle { transition: stroke-dashoffset 0.35s; transform-origin: 50% 50%; stroke-dashoffset: 226; animation: fillCircle 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: 0.2s; filter: drop-shadow(0 0 4px var(--glow-color)); }
+            .circle-icon { position: absolute; font-size: 1.8rem; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 0 5px currentColor); }
             .stat-info-text { text-align: center; margin-top: -5px; }
             .stat-num { font-family: 'Cinzel'; font-weight: 700; font-size: 1.2rem; display: block; line-height: 1; }
             .stat-name { font-family: 'Rajdhani'; font-weight: 600; font-size: 0.85rem; color: #aaa; text-transform: uppercase; }
-
-            @keyframes fillCircle {
-                to { stroke-dashoffset: var(--to-offset); }
-            }
-            /* ------------------------------------------- */
-
+            @keyframes fillCircle { to { stroke-dashoffset: var(--to-offset); } }
             .weakness-group { margin-bottom: 20px; background: rgba(255, 50, 50, 0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(255, 50, 50, 0.3); }
             .weak-label.danger { color: #ff5555; font-family: 'Rajdhani'; font-weight: 700; display: block; margin-bottom: 10px; text-shadow: 0 0 5px #ff5555;}
             .weak-types { display: flex; flex-wrap: wrap; gap: 10px; }
-            .mini-type { 
-                display: inline-flex; align-items: center; gap: 5px; 
-                background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 20px; 
-                color: #fff; font-family: 'Rajdhani'; font-weight: 600; text-transform: uppercase; font-size: 0.9rem;
-            }
+            .mini-type { display: inline-flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 20px; color: #fff; font-family: 'Rajdhani'; font-weight: 600; text-transform: uppercase; font-size: 0.9rem; }
             .mini-type img { width: 16px; height: 16px; }
             .ability-item { margin-bottom: 8px; color: #ddd; font-family: 'Rajdhani'; }
-
             .moves-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-            .moves-list li {
-                background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 4px;
-                text-align: center; font-family: 'Rajdhani'; color: #aaa; text-transform: capitalize;
-                border: 1px solid transparent; transition: 0.2s;
-            }
+            .moves-list li { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 4px; text-align: center; font-family: 'Rajdhani'; color: #aaa; text-transform: capitalize; border: 1px solid transparent; transition: 0.2s; }
             .moves-list li:hover { border-color: var(--theme); color: #fff; background: rgba(var(--theme-rgb), 0.1); }
             .empty-msg { color: #888; font-family: 'Rajdhani'; font-style: italic; }
-
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
             @media (max-width: 900px) {
@@ -361,17 +338,22 @@ export class PokemonModalDetails extends HTMLElement {
                 .poke-name { font-size: 2.5rem; }
                 .tabs-nav { overflow-x: auto; } 
                 .tab-btn { padding: 10px 15px; font-size: 1rem; white-space: nowrap;}
-                
-                /* Ajustement mobile pour les cercles */
                 .stats-grid-circles { grid-template-columns: repeat(3, 1fr); gap: 10px; }
                 .circle-wrapper { width: 70px; height: 70px; }
                 .progress-ring { width: 70px; height: 70px; }
                 .progress-ring__circle-bg, .progress-ring__circle { r: 30; cx: 35; cy: 35; stroke-width: 5; }
                 .circle-icon { font-size: 1.4rem; }
+                
+                .nav-btn { font-size: 2rem; }
+                #btn-prev { left: 5px; }
+                #btn-next { right: 5px; }
             }
         </style>
 
         <div class="backdrop" id="backdrop">
+            <button class="nav-btn" id="btn-prev"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="nav-btn" id="btn-next"><i class="fa-solid fa-chevron-right"></i></button>
+
             <div class="modal-container">
                 
                 <div class="col-visual">
@@ -440,30 +422,47 @@ export class PokemonModalDetails extends HTMLElement {
         `;
 
         this.addInteractions(p.cries.latest);
+        this.updateNavVisibility();
     }
 
-    hexToRgb(hex: string) {
-        const bigint = parseInt(hex.slice(1), 16);
-        const r = (bigint >> 16) & 255;
-        const g = (bigint >> 8) & 255;
-        const b = bigint & 255;
-        return `${r},${g},${b}`;
-    }
-    
-    translateStat(stat: string) {
-        const map: any = { 'hp': 'PV', 'attack': 'Attaque', 'defense': 'Défense', 'special-attack': 'Atq. Spé.', 'special-defense': 'Déf. Spé.', 'speed': 'Vitesse' };
-        return map[stat] || stat;
-    }
+    updateNavVisibility() {
+        if (!this.shadowRoot) return;
+        const btnPrev = this.shadowRoot.getElementById('btn-prev') as HTMLButtonElement;
+        const btnNext = this.shadowRoot.getElementById('btn-next') as HTMLButtonElement;
 
-    getStatColor(val: number) {
-        if(val < 60) return '#ff4f4f';
-        if(val < 100) return '#ffb300';
-        return '#00ff88';
+        if (btnPrev) btnPrev.style.display = this._prevId ? 'block' : 'none';
+        if (btnNext) btnNext.style.display = this._nextId ? 'block' : 'none';
     }
 
     addInteractions(cryUrl: string) {
         const shadow = this.shadowRoot!;
+        
+        //ma logique de navigation
+        const handleNav = (id: string | null) => {
+            if (id) {
+                this.dispatchEvent(new CustomEvent('navigate-pokemon', {
+                    detail: { id: id },
+                    bubbles: true,
+                    composed: true
+                }));
+            }
+        };
+
+        const btnPrev = shadow.getElementById('btn-prev');
+        const btnNext = shadow.getElementById('btn-next');
+
+        btnPrev?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleNav(this._prevId);
+        });
+
+        btnNext?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleNav(this._nextId);
+        });
+
         shadow.getElementById("close")?.addEventListener("click", () => this.close());
+        
         shadow.getElementById("backdrop")?.addEventListener("click", (e) => {
             if (e.target === shadow.getElementById("backdrop")) this.close();
         });
