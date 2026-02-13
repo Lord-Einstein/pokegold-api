@@ -452,3 +452,19 @@ input[type="number"] {
 .custom-select-container.open .arrow {
   transform: rotate(180deg);
 }
+
+pokemon-detail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.75); 
+  backdrop-filter: blur(5px);
+  animation: fadeInBackground 0.4s ease-out forwards;
+}
+

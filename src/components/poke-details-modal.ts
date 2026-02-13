@@ -7,7 +7,7 @@ interface TypeResponse { damage_relations: { double_damage_from: DamageRelation[
 
 export class PokemonModalDetails extends HTMLElement {
     private _id: string | null = null;
-    // Nouveaux états pour la navigation
+
     private _prevId: string | null = null;
     private _nextId: string | null = null;
     
@@ -207,7 +207,7 @@ export class PokemonModalDetails extends HTMLElement {
                 backdrop-filter: blur(10px);
                 z-index: 9999;
                 display: flex; justify-content: center; align-items: center;
-                animation: fadeIn 0.3s ease-out;
+                animation: fadeIn 0.4s ease-out forwards;
             }
 
             /* --- NAVIGATION ARROWS STYLE --- */
@@ -279,6 +279,7 @@ export class PokemonModalDetails extends HTMLElement {
                     inset 0 0 20px rgba(var(--theme-rgb), 0.5),
                     0 20px 40px rgba(0,0,0,0.8);
                 border: 1px solid rgba(var(--theme-rgb), 0.3);
+                animation: bounceInDown 0.8s cubic-bezier(0.215, 0.610, 0.355, 1.000) forwards;
             }
             
             .modal-container::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 30% 50%, rgba(var(--theme-rgb), 0.15) 0%, transparent 60%); pointer-events: none; }
@@ -331,7 +332,7 @@ export class PokemonModalDetails extends HTMLElement {
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
             @media (max-width: 900px) {
-                .modal-container { grid-template-columns: 1fr; grid-template-rows: 250px 1fr; height: 90vh; width: 95vw; }
+                .modal-container { grid-template-columns: 1fr; grid-template-rows: 250px 1fr; height: 90vh; width: 95vw; animation: bounceInDown 0.8s cubic-bezier(0.215, 0.610, 0.355, 1.000) forwards;}
                 .col-visual { padding-bottom: 10px; justify-content: center; overflow: hidden; }
                 .poke-img-popout { position: relative; top: auto; left: auto; width: auto; height: 200px; margin-bottom: 10px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8)); }
                 .col-data { padding: 20px; border-left: none; border-top: 1px solid rgba(var(--theme-rgb), 0.2); }
@@ -348,6 +349,33 @@ export class PokemonModalDetails extends HTMLElement {
                 #btn-prev { left: 5px; }
                 #btn-next { right: 5px; }
             }
+
+            @keyframes fadeInBackground {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+
+            /* La chute avec rebond élastique */
+            @keyframes bounceInDown {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, -3000px, 0); /* Départ très haut */
+            }
+            60% {
+                opacity: 1;
+                transform: translate3d(0, 25px, 0); /* Dépasse le centre (choc) */
+            }
+            75% {
+                transform: translate3d(0, -10px, 0); /* Rebondit vers le haut */
+            }
+            90% {
+                transform: translate3d(0, 5px, 0); /* Petit ajustement bas */
+            }
+            100% {
+                transform: translate3d(0, 0, 0); /* Stabilisation */
+            }
+            }                          
+
         </style>
 
         <div class="backdrop" id="backdrop">
