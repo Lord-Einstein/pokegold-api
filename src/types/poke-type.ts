@@ -62,6 +62,7 @@ export interface PokemonSpecies {
   id: number;
   name: string;
   flavor_text_entries: PokemonSpeciesFlavorText[];
+  evolution_chain: { url: string };
 }
 
 export interface TypeDamageRelations {
@@ -77,6 +78,26 @@ export interface TypeDetail {
   id: number;
   name: string;
   damage_relations: TypeDamageRelations;
+}
+
+//pour mes évolutions
+
+export interface EvolutionDetail {
+  min_level: number;
+  item: APINamedRessource | null;
+  trigger: APINamedRessource;
+}
+
+export interface ChainLink {
+  is_baby: boolean;
+  species: APINamedRessource;
+  evolution_details: EvolutionDetail[];
+  evolves_to: ChainLink[];
+}
+
+export interface EvolutionChainResponse {
+  id: number;
+  chain: ChainLink;
 }
 
 export interface Pokemon {

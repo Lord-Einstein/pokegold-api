@@ -355,68 +355,69 @@ btnNext.addEventListener('click', () => {
 
 
 //gérer la modale
-// =========================================================
-// GESTION DE LA MODALE : BOUCLE INFINIE & CLAVIER
-// =========================================================
-
 let activeKeyListener: ((e: KeyboardEvent) => void) | null = null;
 
 function openModal(pokemonId: number | string) {
-    // 1. Nettoyage (On supprime l'ancienne modale s'il y en a une)
     const oldModal = document.querySelector('pokemon-detail');
     if (oldModal) oldModal.remove();
-    
-    // Nettoyage écouteur clavier
+
     if (activeKeyListener) {
         document.removeEventListener('keydown', activeKeyListener);
         activeKeyListener = null;
     }
 
     const targetId = Number(pokemonId);
-    
-    // 2. Trouver l'index dans la liste actuelle
+
     const currentIndex = currentDisplayList.findIndex(p => getIdFromUrl(p.url) === targetId);
-    if (currentIndex === -1) return;
 
-    // 3. Synchro Pagination (Arrière-plan)
-    const targetPageOffset = Math.floor(currentIndex / displayLimit) * displayLimit;
-    if (targetPageOffset !== currentOffset) {
-        currentOffset = targetPageOffset;
-        renderPage();
-        updatePaginationUI();
+    let prevId: number | null = null;
+    let nextId: number | null = null;
+    let canNavigate = false;
+    if (currentIndex !== -1) {
+        canNavigate = true;
+        
+        const targetPageOffset = Math.floor(currentIndex / displayLimit) * displayLimit;
+        if (targetPageOffset !== currentOffset) {
+            currentOffset = targetPageOffset;
+            renderPage();
+            updatePaginationUI();
+        }
+
+        const total = currentDisplayList.length;
+        const prevIndex = (currentIndex - 1 + total) % total;
+        const nextIndex = (currentIndex + 1) % total;
+
+        prevId = getIdFromUrl(currentDisplayList[prevIndex].url);
+        nextId = getIdFromUrl(currentDisplayList[nextIndex].url);
     }
-
-    // 4. Calcul Boucle Infinie (Le dernier mène au premier)
-    const total = currentDisplayList.length;
-    const prevIndex = (currentIndex - 1 + total) % total; 
-    const nextIndex = (currentIndex + 1) % total;
-
-    // 5. Création et Injection
     const detailElement = document.createElement('pokemon-detail');
     detailElement.setAttribute('pokemon-id', targetId.toString());
-    detailElement.setAttribute('prev-id', getIdFromUrl(currentDisplayList[prevIndex].url).toString());
-    detailElement.setAttribute('next-id', getIdFromUrl(currentDisplayList[nextIndex].url).toString());
 
-    // 6. Écouteurs Navigation (Souris)
+    if (canNavigate && prevId !== null && nextId !== null) {
+        detailElement.setAttribute('prev-id', prevId.toString());
+        detailElement.setAttribute('next-id', nextId.toString());
+    }
+
     detailElement.addEventListener('navigate-pokemon', (e: Event) => {
         const customEvent = e as CustomEvent;
-        openModal(Number(customEvent.detail.id)); 
+        openModal(Number(customEvent.detail.id));
     });
 
-    // 7. Écouteurs Clavier (Flèches & Echap)
     activeKeyListener = (e: KeyboardEvent) => {
-        if (e.key === 'ArrowLeft') {
-            openModal(getIdFromUrl(currentDisplayList[prevIndex].url));
-        } else if (e.key === 'ArrowRight') {
-            openModal(getIdFromUrl(currentDisplayList[nextIndex].url));
-        } else if (e.key === 'Escape') {
+        if (canNavigate) {
+            if (e.key === 'ArrowLeft' && prevId) {
+                openModal(prevId);
+            } else if (e.key === 'ArrowRight' && nextId) {
+                openModal(nextId);
+            }
+        }
+        if (e.key === 'Escape') {
             detailElement.remove();
-            document.removeEventListener('keydown', activeKeyListener!);
+            if (activeKeyListener) document.removeEventListener('keydown', activeKeyListener);
         }
     };
     document.addEventListener('keydown', activeKeyListener);
 
-    // Fermeture via la croix
     detailElement.addEventListener('close-modal', () => {
         detailElement.remove();
         if (activeKeyListener) document.removeEventListener('keydown', activeKeyListener);
@@ -425,7 +426,6 @@ function openModal(pokemonId: number | string) {
     document.body.appendChild(detailElement);
 }
 
-// Init
 document.addEventListener('pokemon-clicked', (e: Event) => {
     const customEvent = e as CustomEvent;
     const pokemonId = Number(customEvent.detail.id);
