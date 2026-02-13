@@ -437,6 +437,12 @@ document.addEventListener('pokemon-clicked', (e: Event) => {
     if (pokemonId) openModal(pokemonId);
 });
 
+document.addEventListener('open-modal', (e: Event) => {
+    const customEvent = e as CustomEvent;
+    const pokemonId = customEvent.detail;
+    
+    openModal(pokemonId);
+});
 
 export async function init() {
     renderSkeletons();

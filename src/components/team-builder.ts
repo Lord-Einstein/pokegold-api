@@ -142,7 +142,7 @@ export class TeamBuilder extends HTMLElement {
         if (this.isOpen) {
             panel?.classList.add('open');
             toggleBtn?.classList.add('active');
-            appBody.style.transition = "padding-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1)";
+            appBody.style.transition = "padding-bottom 0.4s ease-out"; // Animation fluide synchronisée
             appBody.style.paddingBottom = "380px"; 
         } else {
             panel?.classList.remove('open');
@@ -198,12 +198,16 @@ export class TeamBuilder extends HTMLElement {
             slot.className = 'slot';
             slot.innerHTML = '';
 
+            // Nettoyage des anciens écouteurs
+            const newSlot = slot.cloneNode(false) as HTMLElement;
+            slot.parentNode?.replaceChild(newSlot, slot);
+
             if (member) {
-                slot.classList.add('filled');
+                newSlot.classList.add('filled');
                 const mainTypeColor = TYPE_COLORS[member.types[0]] || '#rgba(255,255,255,0.2)';
                 const dots = member.types.map(t => `<span class="dot" style="background:${TYPE_COLORS[t]};" title="${t}"></span>`).join('');
                 
-                slot.innerHTML = `
+                newSlot.innerHTML = `
                     <div class="poke-glow" style="background: radial-gradient(circle, ${mainTypeColor}40 0%, transparent 70%);"></div>
                     <img src="${member.sprite || DEFAULT_IMAGE}" class="poke-sprite" alt="${member.name}">
                     <div class="poke-info">
@@ -212,13 +216,23 @@ export class TeamBuilder extends HTMLElement {
                     </div>
                     <button class="remove-btn"><i class="fa-solid fa-xmark"></i></button>
                 `;
-                slot.querySelector('.remove-btn')?.addEventListener('click', (e) => {
-                    e.stopPropagation();
+                
+                // Clic sur la carte pour ouvrir la modale (Custom Event)
+                newSlot.addEventListener('click', () => {
+                    this.dispatchEvent(new CustomEvent('open-modal', {
+                        detail: member.id,
+                        bubbles: true, 
+                        composed: true 
+                    }));
+                });
+
+                newSlot.querySelector('.remove-btn')?.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Empêche d'ouvrir la modale quand on veut supprimer
                     this.removePokemon(index);
                 });
             } else {
-                slot.classList.add('empty');
-                slot.innerHTML = `<div class="empty-state"><span class="slot-num">${index + 1}</span></div>`;
+                newSlot.classList.add('empty');
+                newSlot.innerHTML = `<div class="empty-state"><span class="slot-num">${index + 1}</span></div>`;
             }
         });
     }
@@ -249,7 +263,6 @@ export class TeamBuilder extends HTMLElement {
         if (threats.length === 0) {
             grid.innerHTML = `<div class="perfect-balance">✨ Équipe Équilibrée ! ✨</div>`;
         } else {
-            
             grid.innerHTML = threats.map(([type, count]) => {
                 const percentage = Math.min((count / 6) * 100, 100);
                 let severityClass = 'low';
@@ -329,20 +342,21 @@ export class TeamBuilder extends HTMLElement {
             this.shadowRoot.innerHTML = `
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
             <style>
-                :host { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 5000; pointer-events: none; font-family: 'Segoe UI', sans-serif; }
+                :host { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 500; pointer-events: none; font-family: 'Segoe UI', sans-serif; }
                 
-                /* --- TOAST (EXTERNE AU PANEL POUR ETRE TOUJOURS VISIBLE) --- */
+                /* SCROLLBAR STYLISÉE */
+                ::-webkit-scrollbar { width: 6px; }
+                ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+                ::-webkit-scrollbar-thumb { background: #c9a86a; border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: #e0c080; }
+
+                /* TOAST */
                 .toast {
-                    position: fixed; /* Fixé à la fenêtre */
-                    top: 20px;       /* En haut */
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background: #1e2329;
-                    border: 1px solid rgba(139, 92, 46, 0.4);
+                    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+                    background: #1e2329; border: 1px solid rgba(139, 92, 46, 0.4);
                     color: #e8e6e3; padding: 12px 24px; border-radius: 8px;
                     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-                    display: flex; align-items: center; gap: 12px;
-                    font-size: 0.95rem; z-index: 10000;
+                    display: flex; align-items: center; gap: 12px; font-size: 0.95rem; z-index: 10000;
                     opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 }
                 .toast.show { opacity: 1; visibility: visible; top: 40px; }
@@ -351,12 +365,15 @@ export class TeamBuilder extends HTMLElement {
                 .toast.error i { color: #e74c3c; }
                 .toast.warning i { color: #f1c40f; }
 
-                /* --- PANEL --- */
+                /* PANEL - ANIMATION FLUIDE */
                 .team-panel {
                     height: 380px; background: #1e2329;
                     border-top: 2px solid rgba(139, 92, 46, 0.6);
                     box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
-                    transform: translateY(110%); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    /* Translation de 100% suffit pour cacher sans dépasser */
+                    transform: translateY(100%); 
+                    /* Transition "ease-out" pour un glissement naturel sans rebond */
+                    transition: transform 0.4s ease-out; 
                     pointer-events: auto; display: flex; flex-direction: column;
                 }
                 .team-panel.open { transform: translateY(0); }
@@ -381,37 +398,58 @@ export class TeamBuilder extends HTMLElement {
 
                 /* LAYOUT */
                 .content-wrapper { display: flex; height: 100%; overflow: hidden; }
-                .left-column { flex: 2; padding: 20px; border-right: 1px solid rgba(255,255,255,0.05); overflow-x: auto; }
-                .right-column { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.1); }
+                /* La colonne de gauche (cartes) prend plus de place */
+                .left-column { flex: 3; padding: 20px; border-right: 1px solid rgba(255,255,255,0.05); overflow-y: hidden; }
+                .right-column { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.1); min-width: 300px; }
 
-                /* SLOTS */
-                .slots-container { display: flex; gap: 15px; justify-content: center; min-width: max-content; }
+                /* SLOTS - GRID LAYOUT */
+                .slots-container { 
+                    display: grid; 
+                    grid-template-columns: repeat(6, 1fr); 
+                    gap: 15px; 
+                    height: 100%;
+                    width: 100%;
+                }
+                
                 .slot {
-                    width: 110px; height: 150px; position: relative; border-radius: 8px;
+                    position: relative; border-radius: 8px;
                     background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.1);
                     display: flex; flex-direction: column; align-items: center; justify-content: center;
                     transition: 0.3s;
+                    height: 100%; /* Prend toute la hauteur de la grid */
+                    cursor: pointer;
+                    overflow: hidden;
                 }
-                .slot.filled { background: #15191e; border: 1px solid rgba(139, 92, 46, 0.3); }
-                .poke-sprite { width: 80px; height: 80px; object-fit: contain; z-index: 2; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5)); }
-                .poke-info { width: 100%; text-align: center; margin-top: auto; padding: 5px 0; background: rgba(0,0,0,0.3); border-radius: 0 0 8px 8px; z-index: 2; }
-                .poke-name { font-size: 0.75rem; color: #ccc; text-transform: capitalize; display: block; }
+                .slot.empty:hover { background: rgba(255,255,255,0.05); }
                 
-                .mini-types { display: flex; justify-content: center; gap: 4px; margin-top: 3px; }
-                .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; box-shadow: 0 0 2px rgba(0,0,0,0.5); }
-                .poke-glow { position: absolute; top: 20%; width: 60px; height: 60px; border-radius: 50%; opacity: 0.6; }
+                .slot.filled { background: #15191e; border: 1px solid rgba(139, 92, 46, 0.3); }
+                .slot.filled:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.5); border-color: #c9a86a; }
+
+                /* SPRITES PLUS GRANDS */
+                .poke-sprite { width: 100%; height: 65%; object-fit: contain; z-index: 2; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5)); transition: 0.3s; }
+                .slot.filled:hover .poke-sprite { transform: scale(1.1); }
+                
+                .poke-info { width: 100%; text-align: center; margin-top: auto; padding: 8px 0; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.05); z-index: 2; }
+                .poke-name { font-size: 0.85rem; color: #ccc; text-transform: capitalize; display: block; font-weight: bold; }
+                
+                .mini-types { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+                .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; box-shadow: 0 0 2px rgba(0,0,0,0.5); border: 1px solid rgba(0,0,0,0.3); }
+                .poke-glow { position: absolute; top: 15%; width: 100px; height: 100px; border-radius: 50%; opacity: 0.5; }
 
                 .remove-btn {
-                    position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; border-radius: 50%;
-                    background: #1a1a1a; border: 1px solid #ff4444; color: #ff4444; cursor: pointer;
+                    position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%;
+                    background: rgba(0,0,0,0.8); border: 1px solid #ff4444; color: #ff4444; cursor: pointer;
                     display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.2s; z-index: 10;
                 }
                 .slot.filled:hover .remove-btn { opacity: 1; }
+                .remove-btn:hover { background: #ff4444; color: white; transform: scale(1.1); }
+
+                .slot-num { font-size: 2rem; opacity: 0.1; font-weight: bold; color: white; }
 
                 /* TABS */
                 .tabs-header { display: flex; border-bottom: 1px solid rgba(255,255,255,0.05); }
                 .tab-btn {
-                    flex: 1; padding: 10px; background: none; border: none; color: #777; cursor: pointer;
+                    flex: 1; padding: 12px; background: none; border: none; color: #777; cursor: pointer;
                     font-size: 0.9rem; text-transform: uppercase; font-weight: 600; transition: 0.3s;
                 }
                 .tab-btn:hover { color: #ccc; }
@@ -420,7 +458,7 @@ export class TeamBuilder extends HTMLElement {
                 .tab-panel { display: none; padding: 15px; overflow-y: auto; height: 100%; }
                 .tab-panel.active { display: flex; flex-direction: column; gap: 10px; }
 
-                /* --- PROGRESS BAR ANALYSIS --- */
+                /* ANALYSIS */
                 .threat-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
                 .threat-icon img { width: 24px; height: 24px; }
                 .threat-data { flex: 1; }
@@ -448,20 +486,23 @@ export class TeamBuilder extends HTMLElement {
                 
                 .saved-team-row {
                     display: flex; justify-content: space-between; align-items: center;
-                    background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 4px;
+                    background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 4px; border: 1px solid transparent; transition: 0.2s;
                 }
+                .saved-team-row:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); }
                 .saved-name { font-size: 0.9rem; color: #ddd; }
-                .action-btn { background: none; border: none; cursor: pointer; padding: 5px; transition: 0.2s; }
+                .action-btn { background: none; border: none; cursor: pointer; padding: 5px; transition: 0.2s; opacity: 0.7; }
+                .action-btn:hover { opacity: 1; transform: scale(1.1); }
                 .load-btn { color: #3498db; }
                 .del-btn { color: #e74c3c; }
 
                 /* MOBILE */
-                @media (max-width: 768px) {
-                    .content-wrapper { flex-direction: column; }
-                    .left-column { flex: 1; padding: 10px; }
-                    .right-column { height: 200px; }
-                    .slot { width: 90px; height: 120px; }
-                    .team-panel { height: 90vh; }
+                @media (max-width: 900px) {
+                    .content-wrapper { flex-direction: column; overflow-y: auto; }
+                    .left-column { flex: none; height: auto; padding: 10px; overflow-x: auto; }
+                    .slots-container { display: flex; min-width: max-content; height: 160px; }
+                    .slot { width: 120px; height: 100%; flex-shrink: 0; }
+                    .right-column { min-height: 300px; }
+                    .team-panel { height: 80vh; max-height: 600px; }
                 }
             </style>
 

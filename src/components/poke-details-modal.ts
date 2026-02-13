@@ -130,7 +130,7 @@ export class PokemonModalDetails extends HTMLElement {
     renderLoading() {
         if (this.shadowRoot) {
             this.shadowRoot.innerHTML = `
-            <style>.backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;color:white;font-family:'Rajdhani';letter-spacing:2px; z-index: 10000; animation: fadeIn 0.4s ease-out;}</style>
+            <style>.backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;color:white;font-family:'Rajdhani';letter-spacing:2px; z-index: 100000; animation: fadeIn 0.4s ease-out;}</style>
             <div class="backdrop">CHARGEMENT...</div>`;
         }
     }
@@ -146,6 +146,8 @@ export class PokemonModalDetails extends HTMLElement {
         
         const img = p.sprites.other?.home?.front_default || p.sprites.other?.["official-artwork"]?.front_default || DEFAULT_IMAGE;
         const themeColor = TYPE_COLORS[p.types[0].type.name] || '#c9a86a';
+        // Pour l'effet "glow" du bouton
+        const typeGlow = themeColor.startsWith('#') ? themeColor : themeColor.replace(")", ", 0.6)").replace('rgb', 'rgba');
         
         const flavorEntry = this._species?.flavor_text_entries.find((e: any) => e.language.name === 'fr') || this._species?.flavor_text_entries.find((e: any) => e.language.name === 'en');
         const description = flavorEntry ? flavorEntry.flavor_text.replace(/[\f\n]/g, ' ') : "Aucune description disponible.";
@@ -211,10 +213,28 @@ export class PokemonModalDetails extends HTMLElement {
             @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
             @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Rajdhani:wght@500;600;700&display=swap');
 
-            :host { --theme: ${themeColor}; --theme-rgb: ${this.hexToRgb(themeColor)}; --bg-dark: #0a0a0f; --text-light: #e0e0e0; }
+            /* Z-INDEX IMPORTANT : Pour passer au dessus du Team Builder */
+            :host { 
+                --theme: ${themeColor}; 
+                --theme-rgb: ${this.hexToRgb(themeColor)}; 
+                --bg-dark: #0a0a0f; 
+                --text-light: #e0e0e0;
+                --type-glow: ${typeGlow}; 
+                
+                position: relative;
+                z-index: 100000; 
+                display: block;
+            }
+            
             * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--theme) rgba(0,0,0,0.3); }
             
-            .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 9999; display: flex; justify-content: center; align-items: center; animation: fadeIn 0.4s ease-out; }
+            .backdrop { 
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); 
+                z-index: 100000; 
+                display: flex; justify-content: center; align-items: center; 
+                animation: fadeIn 0.4s ease-out; 
+            }
             
             /* MODALE LARGE */
             .modal-container { 
@@ -265,7 +285,38 @@ export class PokemonModalDetails extends HTMLElement {
             }
             .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
             .poke-name { font-family: 'Cinzel', serif; font-size: 3rem; color: #fff; margin: 0; line-height: 1; text-shadow: 0 0 10px rgba(var(--theme-rgb), 0.5); }
+            
+            /* LIGNE ID + BOUTON SVG */
+            .id-row { display: flex; align-items: center; gap: 15px; }
             .poke-id { font-family: 'Rajdhani'; font-size: 1.2rem; color: var(--theme); letter-spacing: 2px; font-weight: 700; opacity: 0.8; }
+            
+            /* STYLE BOUTON ADD TEAM */
+            @keyframes heartbeat {
+                0% { transform: scale(1); filter: drop-shadow(0 0 1px var(--type-glow)); }
+                50% { transform: scale(1.15); filter: drop-shadow(0 0 6px var(--type-glow)); }
+                100% { transform: scale(1); filter: drop-shadow(0 0 1px var(--type-glow)); }
+            }
+            .add-team-btn {
+                background: none; border: none; padding: 0; cursor: pointer;
+                width: 40px; height: 40px;
+                color: var(--theme);
+                display: flex; align-items: center; justify-content: center;
+                animation: heartbeat 2s infinite ease-in-out;
+                transition: all 0.3s ease;
+            }
+            .add-team-btn svg {
+                width: 100%; height: 100%; fill: currentColor;
+                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.8));
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .add-team-btn:hover {
+                animation: none; color: #ffffff;
+                filter: drop-shadow(0 0 10px var(--theme));
+                transform: scale(1.2);
+            }
+            .add-team-btn:hover svg { transform: rotate(90deg); }
+            .add-team-btn:active { transform: scale(0.9); }
+
             .close-btn { background: none; border: none; color: var(--text-light); font-size: 2rem; cursor: pointer; line-height: 0.5; transition: 0.3s; opacity: 0.6; } .close-btn:hover { color: var(--theme); opacity: 1; transform: rotate(90deg); }
             
             /* TABS & SCROLL */
@@ -298,17 +349,13 @@ export class PokemonModalDetails extends HTMLElement {
             .tab-btn.active { color: #fff; text-shadow: 0 0 10px var(--theme); } 
             .tab-btn.active::after { width: 100%; }
             
-            /* CONTENT FIX */
-            .tab-content-container { 
-                flex: 1; min-height: 0; overflow-y: auto; padding-right: 10px; 
-            }
+            .tab-content-container { flex: 1; min-height: 0; overflow-y: auto; padding-right: 10px; }
             .tab-panel { display: none; animation: fadeIn 0.3s ease-out; } 
             .tab-panel.active { display: block; }
             
             .desc-text { font-family: 'Rajdhani'; font-size: 1.1rem; color: #ccc; font-style: italic; line-height: 1.5; margin-bottom: 25px; }
             .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; } .info-box { background: rgba(var(--theme-rgb), 0.1); border: 1px solid rgba(var(--theme-rgb), 0.2); padding: 10px; border-radius: 8px; text-align: center; } .info-label { font-family: 'Rajdhani'; font-size: 0.8rem; color: var(--theme); text-transform: uppercase; } .info-val { font-family: 'Cinzel'; font-size: 1.2rem; color: #fff; font-weight: 700; }
             
-            /* FAIBLESSES */
             .weakness-compact-list { display: flex; flex-direction: column; gap: 8px; }
             .weak-row { display: flex; align-items: center; background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 6px; }
             .weak-badge { font-family: 'Cinzel'; font-weight: 700; font-size: 0.9rem; padding: 2px 8px; border-radius: 4px; min-width: 40px; text-align: center; margin-right: 15px; border: 1px solid currentColor; }
@@ -317,7 +364,6 @@ export class PokemonModalDetails extends HTMLElement {
             .compact-type-pill { display: flex; align-items: center; gap: 5px; font-family: 'Rajdhani'; font-size: 0.85rem; color: #ddd; text-transform: uppercase; letter-spacing: 0.5px; }
             .compact-type-pill img { width: 16px; height: 16px; }
 
-            /* ARBRE & FILS */
             .evolution-tree-container { display: flex; justify-content: center; align-items: center; padding: 20px 10px; width: 100%; overflow-x: auto; }
             .evo-branch { display: flex; align-items: center; gap: 40px; }
             .evo-node { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; }
@@ -368,7 +414,14 @@ export class PokemonModalDetails extends HTMLElement {
                 <div class="col-data">
                     <div class="header">
                         <div>
-                            <div class="poke-id">NO. ${p.id.toString().padStart(3,'0')}</div>
+                            <div class="id-row">
+                                <div class="poke-id">NO. ${p.id.toString().padStart(3,'0')}</div>
+                                <button class="add-team-btn" id="btn-add-team" title="Ajouter à l'équipe">
+                                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M19 11H13V5C13 4.45 12.55 4 12 4C11.45 4 11 4.45 11 5V11H5C4.45 11 4 11.45 4 12C4 12.55 4.45 13 5 13H11V19C11 19.55 11.45 20 12 20C12.55 20 13 19.55 13 19V13H19C19.55 13 20 12.55 20 12C20 11.45 19.55 11 19 11Z"/>
+                                    </svg>
+                                </button>
+                            </div>
                             <h2 class="poke-name">${p.name}</h2>
                         </div>
                         <button class="close-btn" id="close">✕</button>
@@ -435,6 +488,38 @@ export class PokemonModalDetails extends HTMLElement {
                 this.dispatchEvent(new CustomEvent('navigate-pokemon', { detail: { id: id }, bubbles: true, composed: true }));
             }
         };
+
+        const btnAdd = shadow.getElementById('btn-add-team');
+        if (btnAdd) {
+            btnAdd.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                const btn = e.currentTarget as HTMLElement;
+                if (btn.hasAttribute('disabled')) return;
+
+                btn.animate([
+                    { transform: 'scale(0.9)' },
+                    { transform: 'scale(1.4)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 300 });
+
+                const payload = {
+                    id: this._pokemon?.id,
+                    name: this._pokemon?.name,
+                    sprite: this._pokemon?.sprites.other?.home?.front_default || this._pokemon?.sprites.front_default,
+                    types: this._pokemon?.types.map(t => t.type.name)
+                };
+
+                this.dispatchEvent(new CustomEvent('add-to-team', {
+                    detail: payload,
+                    bubbles: true,
+                    composed: true
+                }));
+
+                btn.setAttribute('disabled', 'true');
+                setTimeout(() => btn.removeAttribute('disabled'), 500);
+            });
+        }
 
         shadow.getElementById('btn-prev')?.addEventListener('click', (e) => { e.stopPropagation(); handleNav(this._prevId); });
         shadow.getElementById('btn-next')?.addEventListener('click', (e) => { e.stopPropagation(); handleNav(this._nextId); });
