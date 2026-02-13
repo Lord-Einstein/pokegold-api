@@ -1,35 +1,16 @@
 import { DEFAULT_IMAGE, TYPE_ICONS, TYPE_COLORS } from "../global-consts/consts.ts";
-
-const TYPE_WEAKNESSES: Record<string, string[]> = {
-    normal: ["fighting"], fire: ["water", "ground", "rock"], water: ["electric", "grass"],
-    electric: ["ground"], grass: ["fire", "ice", "poison", "flying", "bug"],
-    ice: ["fire", "fighting", "rock", "steel"], fighting: ["flying", "psychic", "fairy"],
-    poison: ["ground", "psychic"], ground: ["water", "grass", "ice"],
-    flying: ["electric", "ice", "rock"], psychic: ["bug", "ghost", "dark"],
-    bug: ["fire", "flying", "rock"], rock: ["water", "grass", "fighting", "ground", "steel"],
-    ghost: ["ghost", "dark"], dragon: ["ice", "dragon", "fairy"],
-    steel: ["fire", "fighting", "ground"], dark: ["fighting", "bug", "fairy"],
-    fairy: ["poison", "steel"], stellar: []
-};
-
-interface TeamMember {
-    id: number;
-    name: string;
-    sprite: string;
-    types: string[];
-}
+import { TeamLogic } from "../utils/team-logic.ts";
 
 interface SavedTeam {
     name: string;
-    members: TeamMember[];
+    members: any[];
 }
 
 export class TeamBuilder extends HTMLElement {
-    private currentTeam: TeamMember[] = [];
+    private logic!: TeamLogic; 
     private savedTeams: SavedTeam[] = [];
-    private maxSize = 6;
     private isOpen = false;
-    private activeTab: 'analysis' | 'save' = 'analysis';
+    private activeTab: 'analysis' | 'save' = 'analysis'; //celui là je l'utilise plus à delete plus tard
     private toastTimeout: number | undefined;
     private static instance: TeamBuilder | null = null;
 
@@ -37,6 +18,8 @@ export class TeamBuilder extends HTMLElement {
         super();
         if (TeamBuilder.instance) return TeamBuilder.instance;
         this.attachShadow({ mode: 'open' });
+        this.logic = new TeamLogic();
+        
         TeamBuilder.instance = this;
     }
 
@@ -56,8 +39,14 @@ export class TeamBuilder extends HTMLElement {
     private loadData() {
         const active = localStorage.getItem('pokexplore_active_team');
         if (active) {
-            try { this.currentTeam = JSON.parse(active); } catch (e) { this.currentTeam = []; }
+            try { 
+                const data = JSON.parse(active);
+                this.logic = new TeamLogic(data);
+            } catch (e) { 
+                this.logic = new TeamLogic(); 
+            }
         }
+
         const library = localStorage.getItem('pokexplore_saved_teams');
         if (library) {
             try { this.savedTeams = JSON.parse(library); } catch (e) { this.savedTeams = []; }
@@ -65,7 +54,7 @@ export class TeamBuilder extends HTMLElement {
     }
 
     private persistActiveTeam() {
-        localStorage.setItem('pokexplore_active_team', JSON.stringify(this.currentTeam));
+        localStorage.setItem('pokexplore_active_team', JSON.stringify(this.logic.getTeam()));
     }
 
     private persistLibrary() {
@@ -73,11 +62,13 @@ export class TeamBuilder extends HTMLElement {
     }
 
     private saveCurrentTeam(name: string) {
+        const currentTeam = this.logic.getTeam();
+        
         if (!name) return this.showToast("Donnez un nom à l'équipe !", 'warning');
-        if (this.currentTeam.length === 0) return this.showToast("L'équipe est vide.", 'warning');
+        if (currentTeam.length === 0) return this.showToast("L'équipe est vide.", 'warning');
 
         const existingIndex = this.savedTeams.findIndex(t => t.name === name);
-        const newEntry: SavedTeam = { name, members: [...this.currentTeam] };
+        const newEntry: SavedTeam = { name, members: [...currentTeam] };
 
         if (existingIndex >= 0) {
             this.savedTeams[existingIndex] = newEntry;
@@ -93,7 +84,7 @@ export class TeamBuilder extends HTMLElement {
     private loadSavedTeam(name: string) {
         const target = this.savedTeams.find(t => t.name === name);
         if (target) {
-            this.currentTeam = [...target.members];
+            this.logic = new TeamLogic([...target.members]);
             this.persistActiveTeam();
             this.updateUI();
             this.showToast(`Équipe "${name}" chargée.`, 'success');
@@ -108,9 +99,9 @@ export class TeamBuilder extends HTMLElement {
     }
 
     private clearTeam() {
-        if (this.currentTeam.length === 0) return;
+        if (this.logic.getTeam().length === 0) return;
         if (confirm("Voulez-vous vraiment vider toute l'équipe ?")) {
-            this.currentTeam = [];
+            this.logic = new TeamLogic();
             this.persistActiveTeam();
             this.updateUI();
             this.showToast("Équipe vidée.", 'info');
@@ -142,7 +133,7 @@ export class TeamBuilder extends HTMLElement {
         if (this.isOpen) {
             panel?.classList.add('open');
             toggleBtn?.classList.add('active');
-            appBody.style.transition = "padding-bottom 0.4s ease-out"; // Animation fluide synchronisée
+            appBody.style.transition = "padding-bottom 0.4s ease-out";
             appBody.style.paddingBottom = "380px"; 
         } else {
             panel?.classList.remove('open');
@@ -153,30 +144,37 @@ export class TeamBuilder extends HTMLElement {
 
     addPokemon(pokemon: any) {
         const newId = Number(pokemon.id);
-        if (this.currentTeam.some(p => p.id === newId)) {
-            this.showToast(`${pokemon.name} est déjà là.`, 'warning');
-            return;
-        }
-        if (this.currentTeam.length >= this.maxSize) {
-            this.showToast("L'équipe est complète !", 'error');
-            if (!this.isOpen) this.togglePanel(true);
-            return;
-        }
-
         const pTypes = Array.isArray(pokemon.types) ? pokemon.types : ['normal'];
-        this.currentTeam.push({ id: newId, name: pokemon.name, sprite: pokemon.sprite, types: pTypes });
-
-        this.persistActiveTeam();
-        this.updateUI();
-        this.showToast(`${pokemon.name} recruté !`, 'success');
         
-        if (this.currentTeam.length === 1 && !this.isOpen) {
-             this.togglePanel(true);
+        const pokemonToAdd = { 
+            id: newId, 
+            name: pokemon.name, 
+            sprite: pokemon.sprite, 
+            types: pTypes 
+        };
+
+        const result = this.logic.addPokemon(pokemonToAdd);
+
+        if (result.success) {
+            this.persistActiveTeam();
+            this.updateUI();
+            this.showToast(`${pokemon.name} recruté !`, 'success');
+            
+            if (this.logic.getTeam().length === 1 && !this.isOpen) {
+                 this.togglePanel(true);
+            }
+        } else {
+            if (result.message === "DUPLICATE") {
+                this.showToast(`${pokemon.name} est déjà là.`, 'warning');
+            } else if (result.message === "FULL") {
+                this.showToast("L'équipe est complète !", 'error');
+                if (!this.isOpen) this.togglePanel(true);
+            }
         }
     }
 
-    removePokemon(index: number) {
-        this.currentTeam.splice(index, 1);
+    removePokemon(id: number) {
+        this.logic.removePokemon(id);
         this.persistActiveTeam();
         this.updateUI();
     }
@@ -190,26 +188,28 @@ export class TeamBuilder extends HTMLElement {
     updateSlots() {
         if (!this.shadowRoot) return;
         const slots = this.shadowRoot.querySelectorAll('.slot');
+        const currentTeam = this.logic.getTeam();
+        
         const countBadge = this.shadowRoot.getElementById('count-badge');
-        if(countBadge) countBadge.textContent = `${this.currentTeam.length} / ${this.maxSize}`;
+        if(countBadge) countBadge.textContent = `${currentTeam.length} / 6`;
 
         slots.forEach((slot, index) => {
-            const member = this.currentTeam[index];
+            const member = currentTeam[index];
             slot.className = 'slot';
             slot.innerHTML = '';
 
-            // Nettoyage des anciens écouteurs
             const newSlot = slot.cloneNode(false) as HTMLElement;
             slot.parentNode?.replaceChild(newSlot, slot);
 
             if (member) {
                 newSlot.classList.add('filled');
-                const mainTypeColor = TYPE_COLORS[member.types[0]] || '#rgba(255,255,255,0.2)';
-                const dots = member.types.map(t => `<span class="dot" style="background:${TYPE_COLORS[t]};" title="${t}"></span>`).join('');
+                const mTypes = (member as any).types;
+                const mainTypeColor = TYPE_COLORS[mTypes[0]] || '#rgba(255,255,255,0.2)';
+                const dots = mTypes.map((t: string) => `<span class="dot" style="background:${TYPE_COLORS[t]};" title="${t}"></span>`).join('');
                 
                 newSlot.innerHTML = `
                     <div class="poke-glow" style="background: radial-gradient(circle, ${mainTypeColor}40 0%, transparent 70%);"></div>
-                    <img src="${member.sprite || DEFAULT_IMAGE}" class="poke-sprite" alt="${member.name}">
+                    <img src="${(member as any).sprite || DEFAULT_IMAGE}" class="poke-sprite" alt="${member.name}">
                     <div class="poke-info">
                         <span class="poke-name">${member.name}</span>
                         <div class="mini-types">${dots}</div>
@@ -217,18 +217,16 @@ export class TeamBuilder extends HTMLElement {
                     <button class="remove-btn"><i class="fa-solid fa-xmark"></i></button>
                 `;
                 
-                // Clic sur la carte pour ouvrir la modale (Custom Event)
                 newSlot.addEventListener('click', () => {
                     this.dispatchEvent(new CustomEvent('open-modal', {
                         detail: member.id,
-                        bubbles: true, 
-                        composed: true 
+                        bubbles: true, composed: true 
                     }));
                 });
 
                 newSlot.querySelector('.remove-btn')?.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Empêche d'ouvrir la modale quand on veut supprimer
-                    this.removePokemon(index);
+                    e.stopPropagation();
+                    this.removePokemon(member.id);
                 });
             } else {
                 newSlot.classList.add('empty');
@@ -242,7 +240,9 @@ export class TeamBuilder extends HTMLElement {
         const emptyMsg = this.shadowRoot?.getElementById('analysis-empty');
         if (!grid || !emptyMsg) return;
 
-        if (this.currentTeam.length === 0) {
+        const currentTeam = this.logic.getTeam();
+
+        if (currentTeam.length === 0) {
             grid.style.display = 'none';
             emptyMsg.style.display = 'flex';
             return;
@@ -251,19 +251,12 @@ export class TeamBuilder extends HTMLElement {
         grid.style.display = 'flex';
         emptyMsg.style.display = 'none';
 
-        const weaknessMap: Record<string, number> = {};
-        this.currentTeam.forEach(m => m.types.forEach(t => {
-            (TYPE_WEAKNESSES[t] || []).forEach(w => weaknessMap[w] = (weaknessMap[w] || 0) + 1);
-        }));
-
-        const threats = Object.entries(weaknessMap)
-            .sort(([, a], [, b]) => b - a)
-            .filter(([, c]) => c > 0);
+        const threats = this.logic.calculateThreats();
 
         if (threats.length === 0) {
             grid.innerHTML = `<div class="perfect-balance">✨ Équipe Équilibrée ! ✨</div>`;
         } else {
-            grid.innerHTML = threats.map(([type, count]) => {
+            grid.innerHTML = threats.map(({ type, count }) => {
                 const percentage = Math.min((count / 6) * 100, 100);
                 let severityClass = 'low';
                 if (count >= 2) severityClass = 'medium';
@@ -342,7 +335,7 @@ export class TeamBuilder extends HTMLElement {
             this.shadowRoot.innerHTML = `
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
             <style>
-                :host { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 500; pointer-events: none; font-family: 'Segoe UI', sans-serif; }
+                :host { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 5000; pointer-events: none; font-family: 'Segoe UI', sans-serif; }
                 
                 /* SCROLLBAR STYLISÉE */
                 ::-webkit-scrollbar { width: 6px; }
