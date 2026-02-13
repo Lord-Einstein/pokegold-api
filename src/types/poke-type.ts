@@ -116,3 +116,16 @@ export interface Pokemon {
   species: APINamedRessource; 
   
 }
+export interface TeamMember {
+  id: number;
+  name: string;
+  sprite: string;
+  types: string[];
+}
+
+export interface SavedTeam {
+  id: string;
+  name: string;
+  members: TeamMember[];
+  createdAt: number;
+}

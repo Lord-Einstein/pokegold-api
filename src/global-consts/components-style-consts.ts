@@ -222,7 +222,6 @@ export const POKE_CARD_COMPONENT_STYLE = `
     }
   </style>
 `;
-
 export const appDiv = document.querySelector<HTMLDivElement>('#app')!;
 appDiv.innerHTML = `
   <div class="app-container">
@@ -231,10 +230,19 @@ appDiv.innerHTML = `
       Pokédex
     </h1>
 
-    <div class="controls-wrapper">
-      <div class="search-container">
-        <i class="fa-solid fa-search search-icon"></i>
-        <input type="text" id="search-input" class="search-input" placeholder="Rechercher...">
+    <div class="controls-wrapper" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+      
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 300px;">
+        
+        <div class="search-container" style="flex: 1;">
+          <i class="fa-solid fa-search search-icon"></i>
+          <input type="text" id="search-input" class="search-input" placeholder="Rechercher...">
+        </div>
+
+        <button id="btn-team-open" class="filter-toggle-btn" style="border-color: #c9a86a; color: #c9a86a; white-space: nowrap;">
+           <i class="fa-solid fa-users"></i> Équipe
+        </button>
+
       </div>
 
       <button id="toggle-filters" class="filter-toggle-btn">
@@ -244,43 +252,20 @@ appDiv.innerHTML = `
 
     <div id="filter-panel" class="filter-panel">
       <div class="filter-grid">
-        
         <div id="dropdown-type" class="custom-select-container">
-            <div class="select-trigger">
-                <span>Tous Types</span>
-                <i class="fa-solid fa-chevron-down arrow"></i>
-            </div>
-            <div class="select-options">
-                <div class="select-option selected" data-value="all">Tous Types</div>
-                </div>
+            <div class="select-trigger"><span>Tous Types</span><i class="fa-solid fa-chevron-down arrow"></i></div>
+            <div class="select-options"><div class="select-option selected" data-value="all">Tous Types</div></div>
         </div>
-
         <div id="dropdown-gen" class="custom-select-container">
-            <div class="select-trigger">
-                <span>Générations</span>
-                <i class="fa-solid fa-chevron-down arrow"></i>
-            </div>
-            <div class="select-options">
-                <div class="select-option selected" data-value="all">Toutes Générations</div>
-            </div>
+            <div class="select-trigger"><span>Générations</span><i class="fa-solid fa-chevron-down arrow"></i></div>
+            <div class="select-options"><div class="select-option selected" data-value="all">Toutes Générations</div></div>
         </div>
-
         <div id="dropdown-ability" class="custom-select-container">
-             <div class="select-trigger">
-                <span>Capacités</span>
-                <i class="fa-solid fa-chevron-down arrow"></i>
-            </div>
-            <div class="select-options">
-                <div class="select-option selected" data-value="all">Toutes Capacités</div>
-            </div>
+             <div class="select-trigger"><span>Capacités</span><i class="fa-solid fa-chevron-down arrow"></i></div>
+            <div class="select-options"><div class="select-option selected" data-value="all">Toutes Capacités</div></div>
         </div>
-
-        <button id="sort-id" class="sort-btn active">
-          <i class="fa-solid fa-hashtag"></i> ID <span id="icon-id">▲</span>
-        </button>
-        <button id="sort-name" class="sort-btn">
-          <i class="fa-solid fa-font"></i> Nom <span id="icon-name"></span>
-        </button>
+        <button id="sort-id" class="sort-btn active"><i class="fa-solid fa-hashtag"></i> ID <span id="icon-id">▲</span></button>
+        <button id="sort-name" class="sort-btn"><i class="fa-solid fa-font"></i> Nom <span id="icon-name"></span></button>
       </div>
     </div>
     
@@ -295,5 +280,8 @@ appDiv.innerHTML = `
     </div>
 
     <div id="pokemon-container" class="cards-grid"></div>
+    
+    <team-builder></team-builder>
+    
   </div>
 `;

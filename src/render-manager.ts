@@ -5,6 +5,8 @@ import './global-consts/components-style-consts'
 import { DEFAULT_IMAGE, TYPE_ICONS, GEN_ICONS } from './global-consts/consts'
 import { fetchFiltersList, fetchPokemonByFilter, pokeLiteApiFetcher } from './services/details-api'
 
+import "./components/team-builder";
+
 const isMobile = window.innerWidth < 768;
 const displayLimit = isMobile ? 1 : 8;
 
@@ -40,6 +42,9 @@ const filterPanel = document.getElementById('filter-panel')!;
 const btnToggleFilters = document.getElementById('toggle-filters')!;
 const btnSortId = document.getElementById('sort-id') as HTMLButtonElement;
 const btnSortName = document.getElementById('sort-name') as HTMLButtonElement;
+
+// 👇 AJOUT : Récupération du bouton Équipe
+const btnTeamOpen = document.getElementById('btn-team-open') as HTMLButtonElement;
 
 
 function setupDropdown(id: string, onSelect: (val: string) => void) {
@@ -439,6 +444,15 @@ export async function init() {
     
     fullRepository = await pokeLiteApiFetcher();
     filteredRepository = [...fullRepository];
+
+    const builder = document.createElement('team-builder') as any;
+    document.body.appendChild(builder);
     
+    if (btnTeamOpen) {
+        btnTeamOpen.addEventListener('click', () => {
+            builder.toggleOpen();
+        });
+    }
+
     mainProcess();
 };
